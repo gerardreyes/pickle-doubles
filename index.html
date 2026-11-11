@@ -41,13 +41,16 @@ h2{font-family:var(--display);font-weight:400;font-size:28px;line-height:1.1;mar
 .btn{display:block;width:100%;padding:14px 16px;border-radius:12px;border:0;background:var(--lime);color:#13231f;
   font:400 17px var(--display);letter-spacing:.03em;cursor:pointer;margin-top:10px}
 .btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line);font:500 15px var(--body)}
+.credit{margin:16px 0 0!important;text-align:center;font-size:12px!important;letter-spacing:.04em;color:var(--dim)!important}
+.credit b{color:var(--ink);font-weight:500}
 .big{font-family:var(--display);font-size:44px;line-height:1;margin:4px 0 14px;color:var(--ink)}
 </style>
 
 <div id="app">
   <canvas id="c"></canvas>
   <div class="topbtns">
-    <button id="bMute" class="ib" aria-label="Sound on or off"><svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 4V5L7 9H3zm13.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4z"/></svg></button>
+    <button id="bMusic" class="ib" aria-label="Music on or off" aria-pressed="true"><svg viewBox="0 0 24 24"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/></svg></button>
+    <button id="bMute" class="ib" aria-label="Sound effects on or off"><svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 4V5L7 9H3zm13.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4z"/></svg></button>
     <button id="bPause" class="ib" aria-label="Pause"><svg viewBox="0 0 24 24"><path d="M7 5h4v14H7zm6 0h4v14h-4z"/></svg></button>
   </div>
 
@@ -64,9 +67,10 @@ h2{font-family:var(--display);font-weight:400;font-size:28px;line-height:1.1;mar
       <ul class="how">
         <li><b>MOVE</b><span>Drag anywhere on the left half of the screen like a joystick.</span></li>
         <li><b>HIT</b><span>Swipe on the right half. Short swipe is a dink, long swipe is a drive, swipe down is a lob. Swipe sideways to aim. A tap is an auto shot.</span></li>
-        <li><b>RULES</b><span>Serve and return must bounce first. No volleys while standing in the kitchen (the 7 ft zone at the net).</span></li>
+        <li><b>RULES</b><span>Serve diagonally into the highlighted box, past the kitchen. Serve and return must bounce first. No volleys while standing in the kitchen (the 7 ft zone at the net).</span></li>
       </ul>
       <button id="bPlay" class="btn">Play</button>
+      <p class="credit">Made by <b>Gerard Reyes</b> with Claude Fable 5.2</p>
     </div>
   </div>
 
@@ -75,6 +79,7 @@ h2{font-family:var(--display);font-weight:400;font-size:28px;line-height:1.1;mar
       <h2>Paused</h2>
       <button id="bResume" class="btn">Resume</button>
       <button id="bQuit" class="btn ghost">Quit to menu</button>
+      <p class="credit">Made by <b>Gerard Reyes</b> with Claude Fable 5.2</p>
     </div>
   </div>
 
@@ -85,6 +90,7 @@ h2{font-family:var(--display);font-weight:400;font-size:28px;line-height:1.1;mar
       <div class="big" id="oScore">11 - 7</div>
       <button id="bAgain" class="btn">Rematch</button>
       <button id="bMenu" class="btn ghost">Change level</button>
+      <p class="credit">Made by <b>Gerard Reyes</b> with Claude Fable 5.2</p>
     </div>
   </div>
 </div>
@@ -98,7 +104,7 @@ const $=id=>document.getElementById(id);
 const app=$('app'),cv=$('c'),ctx=cv.getContext('2d');
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,t)=>a+(b-a)*t,rnd=(a,b)=>a+Math.random()*(b-a);
 const randn=()=>{let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(6.2832*v)};
-const DIFF={easy:{spd:8,err:1.7,react:.3},medium:{spd:9.8,err:1,react:.17},hard:{spd:11.3,err:.55,react:.08}};
+const DIFF={easy:{spd:12,err:1.7,react:.3},medium:{spd:14.7,err:1,react:.17},hard:{spd:17,err:.55,react:.08}};
 let diff='medium';
 
 let DPR=1,CW=0,CH=0,SC=10,OX=0,OY=0;
@@ -129,10 +135,20 @@ const PL=[
 const teamOf=t=>[PL[t*2],PL[t*2+1]];
 
 // ---------- audio ----------
-let AC=null,muted=false;
+let AC=null,muted=false,musicOn=true,OUT=null,MG=null,NB=null,mTimer=null,mStep=0,mNext=0;
+try{if(localStorage.getItem('pdMusic')==='0')musicOn=false}catch(e){}
 function initAudio(){
-  if(muted)return;
-  try{if(!AC)AC=new(window.AudioContext||window.webkitAudioContext)();if(AC&&AC.state==='suspended')AC.resume()}catch(e){}
+  try{
+    if(!AC){
+      AC=new(window.AudioContext||window.webkitAudioContext)();
+      OUT=AC.createDynamicsCompressor();OUT.connect(AC.destination);
+      MG=AC.createGain();MG.gain.value=1;MG.connect(OUT);
+      NB=AC.createBuffer(1,Math.floor(AC.sampleRate*.5),AC.sampleRate);
+      const d=NB.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+    }
+    if(AC.state==='suspended')AC.resume();
+  }catch(e){}
+  startMusic();
 }
 function tone(f,d,type,v,slide){
   if(!AC||muted)return;
@@ -141,16 +157,77 @@ function tone(f,d,type,v,slide){
     o.type=type||'square';o.frequency.setValueAtTime(f,t);
     if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(50,f+slide),t+d);
     g.gain.setValueAtTime(v||.06,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);
-    o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+d+.02);
+    o.connect(g);g.connect(OUT);o.start(t);o.stop(t+d+.02);
   }catch(e){}
 }
 const sfx={
   hit:()=>{tone(640,.07,'square',.06,-220);tone(1300,.03,'triangle',.04,-400)},
+  bang:()=>{
+    if(!AC||muted)return;
+    try{
+      const t=AC.currentTime,s=AC.createBufferSource(),f=AC.createBiquadFilter(),g=AC.createGain();
+      s.buffer=NB;f.type='lowpass';f.frequency.setValueAtTime(6000,t);f.frequency.exponentialRampToValueAtTime(250,t+.28);
+      g.gain.setValueAtTime(1,t);g.gain.exponentialRampToValueAtTime(.0001,t+.32);
+      s.connect(f);f.connect(g);g.connect(OUT);s.start(t);s.stop(t+.34);
+    }catch(e){}
+    tone(120,.32,'sine',.55,-80);tone(560,.07,'square',.14,-360);tone(1500,.03,'triangle',.08,-900);
+  },
   bounce:()=>tone(230,.07,'sine',.08,-70),
   net:()=>tone(120,.14,'triangle',.08,-40),
   win:()=>{[523,659,784,1047].forEach((f,i)=>setTimeout(()=>tone(f,.14,'triangle',.07),i*90))},
   lose:()=>{[330,262,196].forEach((f,i)=>setTimeout(()=>tone(f,.18,'sawtooth',.05),i*110))}
 };
+
+// Background music: upbeat 128 BPM chiptune loop (C - G - Am - F), scheduled ahead on the audio clock.
+const STEP=60/128/4,ROOT=[48,43,45,41];
+const CHORD=[[60,64,67],[59,62,67],[60,64,69],[60,65,69]];
+const MEL=[
+  [76,0,0,79,0,76,0,74,72,0,74,76,0,0,0,0],
+  [74,0,0,79,0,74,0,71,67,0,71,74,0,0,72,71],
+  [72,0,0,76,0,72,0,69,69,0,72,76,0,0,0,0],
+  [77,0,0,76,0,72,0,69,72,0,76,77,79,0,77,76]
+];
+const mf=m=>440*Math.pow(2,(m-69)/12);
+function mnote(t,m,d,type,v){
+  const o=AC.createOscillator(),g=AC.createGain();
+  o.type=type;o.frequency.value=mf(m);g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);
+  o.connect(g);g.connect(MG);o.start(t);o.stop(t+d+.02);
+}
+function mnoise(t,d,v,hp){
+  const s=AC.createBufferSource(),f=AC.createBiquadFilter(),g=AC.createGain();
+  s.buffer=NB;f.type='highpass';f.frequency.value=hp;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);
+  s.connect(f);f.connect(g);g.connect(MG);s.start(t);s.stop(t+d+.02);
+}
+function mkick(t){
+  const o=AC.createOscillator(),g=AC.createGain();
+  o.frequency.setValueAtTime(150,t);o.frequency.exponentialRampToValueAtTime(45,t+.12);
+  g.gain.setValueAtTime(.3,t);g.gain.exponentialRampToValueAtTime(.0001,t+.16);
+  o.connect(g);g.connect(MG);o.start(t);o.stop(t+.18);
+}
+function schedStep(n,t){
+  const bar=(n>>4)&3,s=n&15;
+  if(s%4===0)mkick(t);
+  if(s===4||s===12)mnoise(t,.1,.1,1800);else if(s%2===0)mnoise(t,.03,.04,7000);
+  if(s%2===0)mnote(t,ROOT[bar]+((s>>1)%2?12:0),STEP*1.7,'triangle',.15);
+  if(s===2||s===6||s===10||s===14)CHORD[bar].forEach(m=>mnote(t,m,STEP*1.2,'square',.03));
+  const m=MEL[bar][s];if(m)mnote(t,m,STEP*(s%4===3?1.5:1.9),'square',.05);
+}
+function startMusic(){
+  if(!AC||!musicOn||mTimer)return;
+  try{
+    mNext=AC.currentTime+.08;
+    mTimer=setInterval(()=>{while(mNext<AC.currentTime+.15){schedStep(mStep,mNext);mNext+=STEP;mStep++}},30);
+    MG.gain.setTargetAtTime(1,AC.currentTime,.05);
+  }catch(e){}
+}
+function stopMusic(){
+  if(mTimer){clearInterval(mTimer);mTimer=null}
+  try{if(AC&&MG)MG.gain.setTargetAtTime(0,AC.currentTime,.04)}catch(e){}
+}
+function setMusic(v){
+  musicOn=v;try{localStorage.setItem('pdMusic',v?'1':'0')}catch(e){}
+  if(v){if(AC)startMusic();else initAudio()}else stopMusic();
+}
 function buzz(ms){try{navigator.vibrate&&navigator.vibrate(ms)}catch(e){}}
 
 // ---------- serve setup and scoring ----------
@@ -165,12 +242,14 @@ function setupServe(){
   rr.x=sv.x>10?5.5:14.5;rr.y=rt===0?L-2:2;
   rp.x=rr.x>10?5.5:14.5;rp.y=rt===0?NET+KITCH+1.4:NET-KITCH-1.4;
   PL.forEach(p=>{p.vx=p.vy=0;p.swing=0;p.hitDone=true});
+  S.pending=null;S.sbx=sv.x>10?[0,10]:[10,20];S.sby=st===0?[0,NET-KITCH]:[NET+KITCH,L];
   S.server=sv;S.hits=0;S.rally=0;S.timer=0;S.flight=0;S.phase='serve';S.banner=null;
   B.live=false;B.bounces=0;B.vx=B.vy=B.vz=0;B.lastTeam=st;B.trail.length=0;
   B.x=sv.x;B.y=sv.y+(st===0?-.9:.9);B.z=3;
 }
 function endPoint(winner,why){
   if(S.phase!=='rally'&&S.phase!=='serve')return;
+  if(S.pending){winner=S.pending.winner;why=S.pending.why;S.pending=null}
   S.phase='point';S.timer=0;B.live=false;
   if(winner===S.serveTeam){S.score[winner]++}
   else if(S.serveNum===1){S.serveNum=2;S.serverIdx=1-S.serverIdx}
@@ -212,7 +291,10 @@ function updateBall(dt){
     if(B.bounces===1){
       if(side===B.lastTeam)endPoint(1-B.lastTeam,'Did not clear the net');
       else if(!inside)endPoint(1-B.lastTeam,'Out');
-      else if(S.hits===1&&Math.abs(B.y-NET)<=KITCH)endPoint(1-B.lastTeam,'Serve landed in the kitchen');
+      else if(S.hits===1){
+        if(Math.abs(B.y-NET)<=KITCH)endPoint(1-B.lastTeam,'Serve landed in the kitchen');
+        else if(B.x<S.sbx[0]-.2||B.x>S.sbx[1]+.2)endPoint(1-B.lastTeam,'Serve must land diagonally');
+      }
     }else if(B.bounces>=2){
       endPoint(B.lastTeam,'Two bounces');
     }
@@ -247,7 +329,7 @@ function bestGapX(opps){
 
 // ---------- hitting ----------
 function canHit(p){
-  if(!B.live||B.lastTeam===p.team)return 0;
+  if(!B.live||B.lastTeam===p.team||S.pending)return 0;
   const onSide=p.team===0?B.y>NET-1.2:B.y<NET+1.2;
   if(!onSide||B.z>7.2)return 0;
   const d=Math.hypot(B.x-p.x,B.y-p.y);
@@ -256,27 +338,32 @@ function canHit(p){
 function volleyOK(p){return S.hits>=3&&Math.abs(p.y-NET)>=KITCH}
 function tryHit(p){
   const q=canHit(p);if(!q)return;
-  if(B.bounces===0&&!volleyOK(p)){
-    if(p.ctrl==='human')toast(S.hits<3?'Let it bounce first':'Kitchen. No volleys here',1);
-    p.hitDone=true;return;
-  }
+  let fault=null;
+  if(B.bounces===0&&!volleyOK(p))fault=S.hits<3?'Volley before the bounce':'Volley in the kitchen';
   p.hitDone=true;
   const sh=p.ctrl==='human'?humanShot(p,p.intent||{kind:'tap'},q):aiShot(p,q);
   launch(sh.tx,sh.ty,sh.speed);
   B.lastTeam=p.team;B.bounces=0;B.live=true;S.hits++;S.rally++;S.flight=0;S.hint=false;
-  sfx.hit();if(p.ctrl==='human')buzz(18);
+  if(fault){S.pending={winner:1-p.team,why:fault,t:.85};toast('Fault! '+fault,1.3);buzz(60)}
+  if(sh.speed>=32){
+    sfx.bang();S.shake=Math.max(S.shake,.1);
+    if(p.ctrl==='human'){buzz(45);toast('POWER SHOT',.7)}
+    for(let i=0;i<8;i++)FX.push({x:B.x,y:B.y,vx:rnd(-9,9),vy:rnd(-9,9),z:B.z,vz:rnd(0,5),life:.35,col:'#ffb23e'});
+  }else{sfx.hit();if(p.ctrl==='human')buzz(18)}
   for(let i=0;i<6;i++)FX.push({x:B.x,y:B.y,vx:rnd(-6,6),vy:rnd(-6,6),z:B.z,vz:rnd(0,4),life:.3,col:'#fff7a8'});
 }
 function startSwing(p,intent){
   p.swing=.34;p.hitDone=false;p.intent=intent;p.sw=0;
+  if(p.ctrl==='human'){intent.px=p.x;intent.py=p.y}
   if(B.live&&B.lastTeam!==p.team){
     const dx=B.x-p.x,dy=B.y-p.y,d=Math.hypot(dx,dy);
-    if(d>.5&&d<7){p.vx+=dx/d*4;p.vy+=dy/d*4}
+    if(d>.5&&d<7){p.vx+=dx/d*2.5;p.vy+=dy/d*2.5}
   }
 }
 
 function humanShot(p,it,q){
   let pw,depth,tx,speed,kind='drive';
+  const ax0=it.px!==undefined?it.px:p.x,ay0=it.py!==undefined?it.py:p.y;
   if(it.kind==='tap'){
     tx=bestGapX([PL[2],PL[3]]);
     pw=Math.abs(p.y-NET)<KITCH+2.5?.1:(S.hits<=2?.42:.58);
@@ -285,12 +372,12 @@ function humanShot(p,it,q){
   }
   if(it.ay>.4){
     kind='lob';depth=15+pw*5.5;speed=15;
-    tx=clamp(p.x+it.ax*12,1.8,18.2);
+    tx=clamp(ax0+it.ax*12,1.8,18.2);
   }else{
     depth=1.6+pw*19;
     if(tx===null){
-      const fwd=Math.max(.3,-it.ay),dyT=Math.abs(p.y-(NET-depth));
-      tx=clamp(p.x+it.ax/fwd*dyT*.85,1.2,18.8);
+      const fwd=Math.max(.3,-it.ay),dyT=Math.abs(ay0-(NET-depth));
+      tx=clamp(ax0+it.ax/fwd*dyT*.85,1.2,18.8);
     }
     speed=lerp(9,42,Math.pow(pw,.9));
     if(B.z>4.4&&B.bounces===0&&pw>.5&&it.ay<-.4){kind='smash';speed=lerp(34,48,pw);depth=Math.max(depth,8)}
@@ -321,19 +408,21 @@ function aiShot(p,q){
   return{tx:clamp(tx+randn()*sig,-1.5,21.5),ty:NET+side*(depth+randn()*sig*.7),speed};
 }
 
+function serveTarget(it){
+  const bx=S.sbx,c=(bx[0]+bx[1])/2,pw=it.kind==='tap'?.45:clamp((it.len-30)/165,0,1);
+  return{pw,depth:8.8+pw*11.4,tx:clamp(c+(it.kind==='tap'?0:it.ax*5.5),bx[0]+1.3,bx[1]-1.3)};
+}
 function doServe(p,it){
-  const side=p.team===0?-1:1;
+  const side=p.team===0?-1:1,bx=S.sbx;
   let depth,tx,sig,speed;
   if(p.ctrl==='human'){
-    const pw=it.kind==='tap'?.45:clamp((it.len-30)/165,0,1);
-    depth=8.8+pw*11.4;speed=17+pw*12;
-    tx=it.kind==='tap'?rnd(5,15):clamp(p.x+it.ax*14,2,18);
-    sig=.5+pw*.7;
+    const a=serveTarget(it);
+    depth=a.depth;tx=a.tx;speed=17+a.pw*12;sig=.3+a.pw*.45;
   }else{
-    const D=DIFF[diff];depth=rnd(9,19.5);speed=rnd(18,28);tx=rnd(3,17);sig=.4+D.err*.45;
+    const D=DIFF[diff];depth=rnd(9,19.5);speed=rnd(18,28);tx=rnd(bx[0]+1.6,bx[1]-1.6);sig=.3+D.err*.4;
   }
   B.x=p.x;B.y=p.y+(p.team===0?-.9:.9);B.z=2.8;
-  launch(clamp(tx+randn()*sig,-1,21),NET+side*(depth+randn()*sig*.6),speed);
+  launch(tx+randn()*sig,NET+side*(depth+randn()*sig*.6),speed);
   B.lastTeam=p.team;B.bounces=0;B.live=true;S.hits=1;S.rally=1;S.flight=0;S.phase='rally';S.hint=false;
   p.swing=.34;p.hitDone=true;p.sw=0;sfx.hit();
 }
@@ -448,8 +537,9 @@ function humanMove(p,dt){
   const kx=(k.d||k.arrowright?1:0)-(k.a||k.arrowleft?1:0),ky=(k.s||k.arrowdown?1:0)-(k.w||k.arrowup?1:0);
   if(kx||ky){const d=Math.hypot(kx,ky);mx=kx/d;my=ky/d}
   const frozen=S.phase==='serve'&&p===S.server;
-  const sp=11.5;
-  const tvx=frozen?0:mx*sp,tvy=frozen?0:my*sp;
+  const sp=17.25;
+  const plant=p.swing>0?.35:1;
+  const tvx=frozen?0:mx*sp*plant,tvy=frozen?0:my*sp*plant;
   p.vx=lerp(p.vx,tvx,Math.min(1,dt*13));p.vy=lerp(p.vy,tvy,Math.min(1,dt*13));
 }
 
@@ -472,6 +562,7 @@ function update(dt){
   }
   if(S.phase==='rally'){
     S.flight+=dt;
+    if(S.pending){S.pending.t-=dt;if(S.pending.t<=0)endPoint(S.pending.winner,S.pending.why)}
     predCache[0]=predCache[1]=null;
     if(B.live){
       for(let t=0;t<2;t++)if(B.lastTeam!==t)predCache[t]=predict(t);
@@ -568,6 +659,7 @@ function drawBall(){
   ctx.beginPath();ctx.arc(bx,by,r*.14,0,6.28);ctx.fill();
 }
 function aimPreview(it){
+  if(S.phase==='serve'){const a=serveTarget(it);return{tx:a.tx,ty:NET-a.depth,label:'SERVE'}}
   const p=PL[0],pw=clamp((it.len-30)/165,0,1);
   if(it.ay>.4)return{tx:clamp(p.x+it.ax*12,1.8,18.2),ty:NET-(15+pw*5.5),label:'LOB'};
   const depth=1.6+pw*19,fwd=Math.max(.3,-it.ay),dyT=Math.abs(p.y-(NET-depth));
@@ -604,7 +696,7 @@ function drawControls(){
   }
 }
 function drawHUD(){
-  const w=CW-100,y=8,h=48,st=S.serveTeam;
+  const w=CW-148,y=8,h=48,st=S.serveTeam;
   ctx.fillStyle='rgba(22,48,45,.9)';rrect(0,y,w,h,12);ctx.fill();
   ctx.strokeStyle='#2c524c';ctx.lineWidth=1;ctx.stroke();
   const blk=(label,score,cx,col,serving)=>{
@@ -624,7 +716,7 @@ function drawOverlays(){
     const hum=S.server.ctrl==='human',pulse=.55+.45*Math.sin(performance.now()/300);
     ctx.fillStyle='rgba(216,255,62,'+(hum?pulse:.8)+')';
     ctx.fillText(hum?'SWIPE UP TO SERVE':(S.server.team===0?'PARTNER SERVES':'RIVALS SERVE'),CW/2,CH-46);
-    if(hum){ctx.fillStyle='rgba(243,247,238,.6)';ctx.font='500 12px '+FONT_B;ctx.fillText('Longer swipe = deeper serve. Land it past the kitchen.',CW/2,CH-28)}
+    if(hum){ctx.fillStyle='rgba(243,247,238,.6)';ctx.font='500 12px '+FONT_B;ctx.fillText('Serve diagonally into the box, past the kitchen. Swipe sideways to aim.',CW/2,CH-28)}
   }
   if(S.toastT>0&&S.phase==='rally'){
     ctx.font='400 15px '+FONT_D;ctx.textAlign='center';const tw=ctx.measureText(S.toast).width+28;
@@ -643,6 +735,14 @@ function draw(){
   ctx.save();
   if(S.shake>0)ctx.translate(rnd(-1,1)*S.shake*14,rnd(-1,1)*S.shake*14);
   drawCourt();
+  if(S.phase==='serve'&&S.sbx){
+    const x0=S.sbx[0],x1=S.sbx[1],y0=S.sby[0],y1=S.sby[1];
+    ctx.fillStyle='rgba(216,255,62,.16)';ctx.fillRect(wx(x0),wy(y0),(x1-x0)*SC,(y1-y0)*SC);
+    ctx.strokeStyle='rgba(216,255,62,.9)';ctx.lineWidth=2;ctx.setLineDash([7,5]);
+    ctx.strokeRect(wx(x0)+1,wy(y0)+1,(x1-x0)*SC-2,(y1-y0)*SC-2);ctx.setLineDash([]);
+    ctx.fillStyle='rgba(216,255,62,.85)';ctx.font='400 '+Math.max(11,SC*.95)+'px '+FONT_D;ctx.textAlign='center';
+    ctx.fillText(S.server.ctrl==='human'?'SERVE HERE':'SERVICE BOX',wx((x0+x1)/2),wy((y0+y1)/2)+SC*.3);
+  }
   const list=PL.map(p=>({y:p.y,f:()=>drawPlayer(p)}));
   list.push({y:NET,f:drawNet});
   list.sort((a,b)=>a.y-b.y).forEach(o=>o.f());
@@ -658,7 +758,7 @@ let wake=null;
 async function keepAwake(){try{if(navigator.wakeLock)wake=await navigator.wakeLock.request('screen')}catch(e){}}
 function setPaused(v){
   if(S.phase==='menu'||S.phase==='over')return;
-  S.paused=v;$('mPause').hidden=!v;IN.joy=null;IN.swp=null;IN.mx=IN.my=0;IN.q=null;
+  S.paused=v;$('mPause').hidden=!v;if(v)stopMusic();else startMusic();IN.joy=null;IN.swp=null;IN.mx=IN.my=0;IN.q=null;
 }
 function startGame(){
   S.score=[0,0];S.serveTeam=0;S.serveNum=2;S.serverIdx=0;S.over=false;S.paused=false;learned=false;
@@ -666,7 +766,7 @@ function startGame(){
   setupServe();keepAwake();initAudio();
 }
 function toMenu(){
-  S.phase='menu';S.paused=false;['mPause','mOver'].forEach(i=>$(i).hidden=true);$('mStart').hidden=false;
+  stopMusic();S.phase='menu';S.paused=false;['mPause','mOver'].forEach(i=>$(i).hidden=true);$('mStart').hidden=false;
   S.score=[0,0];S.serveTeam=0;S.serveNum=2;S.serverIdx=0;setupServe();S.phase='menu';
 }
 document.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>{
@@ -675,6 +775,8 @@ document.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>{
 $('bPlay').onclick=startGame;$('bAgain').onclick=startGame;$('bMenu').onclick=toMenu;
 $('bPause').onclick=()=>setPaused(!S.paused);$('bResume').onclick=()=>setPaused(false);$('bQuit').onclick=toMenu;
 $('bMute').onclick=()=>{muted=!muted;$('bMute').style.opacity=muted?.45:1;if(!muted)initAudio()};
+$('bMusic').onclick=()=>{setMusic(!musicOn);$('bMusic').style.opacity=musicOn?1:.45;$('bMusic').setAttribute('aria-pressed',String(musicOn))};
+$('bMusic').style.opacity=musicOn?1:.45;$('bMusic').setAttribute('aria-pressed',String(musicOn));
 document.addEventListener('visibilitychange',()=>{if(document.hidden)setPaused(true)});
 window.addEventListener('resize',()=>{resize();CL=cv.getBoundingClientRect().left-app.getBoundingClientRect().left});
 
