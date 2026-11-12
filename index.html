@@ -97,7 +97,7 @@ h2{font-family:var(--display);font-weight:400;font-size:28px;line-height:1.1;mar
         <li><b>RULES</b><span>Serve diagonally past the kitchen. Serve and return must bounce. No volleys from the kitchen.</span></li>
       </ul>
       <button id="bPlay" class="btn">Play</button>
-      <p class="credit">Made by <b>Gerard Reyes</b> with Claude Fable 5.2 · <span class="ver" id="verN">v1.4</span></p>
+      <p class="credit">Made by <b>Gerard Reyes</b> with Claude Fable 5.2 · <span class="ver" id="verN">v1.5</span></p>
     </div>
   </div>
 
@@ -106,7 +106,7 @@ h2{font-family:var(--display);font-weight:400;font-size:28px;line-height:1.1;mar
       <h2>Paused</h2>
       <button id="bResume" class="btn">Resume</button>
       <button id="bQuit" class="btn ghost">Quit to menu</button>
-      <p class="credit">Made by <b>Gerard Reyes</b> with Claude Fable 5.2 · <span class="ver" id="verN">v1.4</span></p>
+      <p class="credit">Made by <b>Gerard Reyes</b> with Claude Fable 5.2 · <span class="ver" id="verN">v1.5</span></p>
     </div>
   </div>
 
@@ -117,7 +117,7 @@ h2{font-family:var(--display);font-weight:400;font-size:28px;line-height:1.1;mar
       <div class="big" id="oScore">11 - 7</div>
       <button id="bAgain" class="btn">Rematch</button>
       <button id="bMenu" class="btn ghost">Change level</button>
-      <p class="credit">Made by <b>Gerard Reyes</b> with Claude Fable 5.2 · <span class="ver" id="verN">v1.4</span></p>
+      <p class="credit">Made by <b>Gerard Reyes</b> with Claude Fable 5.2 · <span class="ver" id="verN">v1.5</span></p>
     </div>
   </div>
 </div>
@@ -558,16 +558,16 @@ function predict(team){
   }
   return bpt?{x:bpt.x,y:bpt.y,t:bpt.t}:{dead:true};
 }
-// Where a high incoming ball comes down into smash height (null when it can't be smashed).
+// Where a high incoming ball comes down into smash height (null when it can't be smashed: too low, or too close to the net to reach from outside the kitchen).
 function smashSpot(){
-  if(!B.live||B.lastTeam!==1||B.bounces!==0||S.hits<2||S.pending)return null;
+  if(!B.live||B.lastTeam!==1||B.bounces!==0||S.hits<3||S.pending)return null;
   const s={x:B.x,y:B.y,z:B.z,vx:B.vx,vy:B.vy,vz:B.vz},dt=1/30;
   for(let i=0;i<90;i++){
     const py=s.y;s.vz-=G*dt;s.x+=s.vx*dt;s.y+=s.vy*dt;s.z+=s.vz*dt;
     if((py-NET)*(s.y-NET)<0&&s.z<NET_H)return null;
     if(s.z<=0)return null;
     if(s.y>NET&&s.vz<0&&s.z<=HIGH+.5){
-      if(s.z<HIGH-.4||inKitchen({y:s.y})||s.x<-1||s.x>W+1||s.y>L+1)return null;
+      if(s.z<HIGH-.4||s.y<NET+KITCH-3||s.x<-1||s.x>W+1||s.y>L+1)return null;
       return{x:s.x,y:s.y,t:i*dt};
     }
   }
@@ -674,12 +674,13 @@ app.addEventListener('pointerup',endPtr);
 app.addEventListener('pointercancel',endPtr);
 const SHOTS=['dink','drop','slice','drive','lob','smash'];
 // An overhead needs a high ball that hasn't bounced, and your feet out of the kitchen.
-function smashReady(){return B.live&&B.lastTeam===1&&B.bounces===0&&S.hits>=3&&B.vy>0&&B.z>=3.4&&!inKitchen(PL[0])}
+// Same test as the star: the ball must come down at smash height outside the kitchen (a high ball over the kitchen has to bounce first).
+function smashReady(){return !inKitchen(PL[0])&&smashSpot()!==null}
 function pressShot(s){
   if(!(S.phase==='serve'||S.phase==='rally')||S.paused)return;
   initAudio();
   if(S.phase==='rally'&&s==='smash'&&!smashReady()){
-    toast(inKitchen(PL[0])&&B.bounces===0&&B.z>=3.4?'Step out of the kitchen first':'Ball is too low to smash',.9);return;
+    toast(inKitchen(PL[0])&&B.bounces===0&&B.z>=3.4?'Step out of the kitchen first':B.bounces===0&&B.z>=3.4?'Let it bounce in the kitchen':'No smash on this ball',.9);return;
   }
   IN.q={kind:'btn',shot:s,ax:IN.mx,ay:IN.my,len:0};
 }
@@ -873,7 +874,7 @@ function drawControls(){
   }
   if(!learned&&!IN.joy&&!IN.swp&&playing()){
     ctx.font='400 12px '+FONT_D;ctx.textAlign='center';ctx.fillStyle='rgba(243,247,238,'+(.45+.3*pulse)+')';
-    if(LAND){const top=Math.max(8,CH/2-70);ctx.fillText('DRAG TO MOVE',OX/2-6,top+150);ctx.fillText('SWIPE OR TAP',OX+W*SC+(CW-OX-W*SC)/2-30,top+90)}
+    if(LAND){const top=Math.max(8,CH/2-70);ctx.fillText('DRAG TO MOVE',OX/2-6,top+150);ctx.fillText('SWIPE OR TAP',(OX+W*SC+CW-98)/2+4,top+90)}
     else{ctx.fillText('DRAG TO MOVE',CW*.27,wy(NET+10));ctx.fillText('SWIPE OR TAP',CW*.7,wy(NET+10))}
   }
 }
@@ -994,7 +995,9 @@ function updateButtons(){
 function layoutShots(){
   const el=$('shots'),aw=app.getBoundingClientRect().width;
   const bw=LAND?98:46;
-  let left=CL+OX+W*SC+(LAND?10:6);if(left+bw>aw-4)left=aw-bw-4;
+  if(LAND){el.style.left='auto';el.style.right='max(16px,env(safe-area-inset-right,0px))';return}  // landscape: thumb-side, at the screen edge
+  el.style.right='';
+  let left=CL+OX+W*SC+6;if(left+bw>aw-4)left=aw-bw-4;
   el.style.left=left+'px';
 
 }
