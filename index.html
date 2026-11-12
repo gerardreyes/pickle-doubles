@@ -1,4 +1,4 @@
-<title>Pickle Doubles</title>
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light}html,body{margin:0;font:14px system-ui}</style></head><body><title>Pickle Doubles</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="theme-color" content="#0f1f1e">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Rubik:wght@400;500;700&display=swap">
@@ -41,8 +41,25 @@ h2{font-family:var(--display);font-weight:400;font-size:28px;line-height:1.1;mar
 .btn{display:block;width:100%;padding:14px 16px;border-radius:12px;border:0;background:var(--lime);color:#13231f;
   font:400 17px var(--display);letter-spacing:.03em;cursor:pointer;margin-top:10px}
 .btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line);font:500 15px var(--body)}
+#bPlay{position:sticky;bottom:0;box-shadow:0 -12px 10px -2px var(--panel)}
 .credit{margin:16px 0 0!important;text-align:center;font-size:12px!important;letter-spacing:.04em;color:var(--dim)!important}
 .credit b{color:var(--ink);font-weight:500}
+.shots{position:absolute;bottom:20px;z-index:3;display:flex;flex-direction:column;gap:6px;width:46px}
+.shot{--c:#d8ff3e;width:46px;height:46px;padding:0;border-radius:12px;border:1.5px solid var(--c);background:rgba(22,48,45,.9);color:var(--c);
+  font:400 10px/1 var(--display);letter-spacing:.02em;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;touch-action:none}
+.shot small{font:500 9px/1 var(--body);opacity:.6}
+.shot[data-s="slice"]{--c:#6cb8ff}.shot[data-s="drop"]{--c:#5fd6c2}.shot[data-s="drive"]{--c:#ffb23e}.shot[data-s="lob"]{--c:#a99cff}.shot[data-s="smash"]{--c:#ff6a4d}
+.shot.ready{background:var(--c);color:#13231f;animation:glow .7s ease-in-out infinite alternate}
+.shot.ready small{opacity:.8}
+.shot.off{opacity:.3}
+.shot.hit{transform:scale(.92);background:var(--c);color:#13231f}
+.shot:focus-visible{outline:2px solid var(--lime);outline-offset:2px}
+@keyframes glow{from{box-shadow:0 0 0 0 transparent}to{box-shadow:0 0 12px 2px var(--c)}}
+@media (prefers-reduced-motion:reduce){.shot.ready{animation:none}}
+.ver{color:var(--lime);font-weight:500;white-space:nowrap}
+/* Landscape: no top bar, so the court gets the full height; score cards live at the sides and shot buttons form a 2x3 grid. */
+#app.land .shots{display:grid;grid-template-columns:repeat(2,46px);width:auto;bottom:10px}
+#app.land .topbtns{top:6px}
 .big{font-family:var(--display);font-size:44px;line-height:1;margin:4px 0 14px;color:var(--ink)}
 </style>
 
@@ -52,6 +69,15 @@ h2{font-family:var(--display);font-weight:400;font-size:28px;line-height:1.1;mar
     <button id="bMusic" class="ib" aria-label="Music on or off" aria-pressed="true"><svg viewBox="0 0 24 24"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/></svg></button>
     <button id="bMute" class="ib" aria-label="Sound effects on or off"><svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 4V5L7 9H3zm13.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4z"/></svg></button>
     <button id="bPause" class="ib" aria-label="Pause"><svg viewBox="0 0 24 24"><path d="M7 5h4v14H7zm6 0h4v14h-4z"/></svg></button>
+  </div>
+
+  <div id="shots" class="shots" aria-label="Shot buttons">
+    <button class="shot" data-s="smash" aria-label="Overhead smash">SMASH<small>6</small></button>
+    <button class="shot" data-s="lob" aria-label="Lob">LOB<small>5</small></button>
+    <button class="shot" data-s="drive" aria-label="Drive">DRIVE<small>4</small></button>
+    <button class="shot" data-s="slice" aria-label="Slice">SLICE<small>3</small></button>
+    <button class="shot" data-s="drop" aria-label="Drop shot">DROP<small>2</small></button>
+    <button class="shot" data-s="dink" aria-label="Dink">DINK<small>1</small></button>
   </div>
 
   <div id="mStart" class="overlay">
@@ -65,12 +91,13 @@ h2{font-family:var(--display);font-weight:400;font-size:28px;line-height:1.1;mar
         <button class="chip" data-d="hard" aria-pressed="false">Hard</button>
       </div>
       <ul class="how">
-        <li><b>MOVE</b><span>Drag anywhere on the left half of the screen like a joystick.</span></li>
-        <li><b>HIT</b><span>Swipe on the right half. Short swipe is a dink, long swipe is a drive, swipe down is a lob. Swipe sideways to aim. A tap is an auto shot.</span></li>
-        <li><b>RULES</b><span>Serve diagonally into the highlighted box, past the kitchen. Only the diagonal receiver may return the serve. Serve and return must bounce first. No volleys with your feet in the kitchen (the 7 ft zone at the net). Your ring turns red when you're in the kitchen and the ball hasn't bounced yet, and back to green once it has.</span></li>
+        <li><b>MOVE</b><span>Drag the left half like a joystick.</span></li>
+        <li><b>HIT</b><span>Swipe the right half (short dink, long drive, down lob) or tap a shot button. Hold the stick sideways to aim.</span></li>
+        <li><b>TIPS</b><span>Low balls can only be dinked or dropped. A star on the court means you can smash. Slice keeps it low. Reach late and it pops up.</span></li>
+        <li><b>RULES</b><span>Serve diagonally past the kitchen. Serve and return must bounce. No volleys from the kitchen.</span></li>
       </ul>
       <button id="bPlay" class="btn">Play</button>
-      <p class="credit">Made by <b>Gerard Reyes</b> with Claude Fable 5.2</p>
+      <p class="credit">Made by <b>Gerard Reyes</b> with Claude Fable 5.2 · <span class="ver" id="verN">v1.4</span></p>
     </div>
   </div>
 
@@ -79,7 +106,7 @@ h2{font-family:var(--display);font-weight:400;font-size:28px;line-height:1.1;mar
       <h2>Paused</h2>
       <button id="bResume" class="btn">Resume</button>
       <button id="bQuit" class="btn ghost">Quit to menu</button>
-      <p class="credit">Made by <b>Gerard Reyes</b> with Claude Fable 5.2</p>
+      <p class="credit">Made by <b>Gerard Reyes</b> with Claude Fable 5.2 · <span class="ver" id="verN">v1.4</span></p>
     </div>
   </div>
 
@@ -90,7 +117,7 @@ h2{font-family:var(--display);font-weight:400;font-size:28px;line-height:1.1;mar
       <div class="big" id="oScore">11 - 7</div>
       <button id="bAgain" class="btn">Rematch</button>
       <button id="bMenu" class="btn ghost">Change level</button>
-      <p class="credit">Made by <b>Gerard Reyes</b> with Claude Fable 5.2</p>
+      <p class="credit">Made by <b>Gerard Reyes</b> with Claude Fable 5.2 · <span class="ver" id="verN">v1.4</span></p>
     </div>
   </div>
 </div>
@@ -104,27 +131,28 @@ const $=id=>document.getElementById(id);
 const app=$('app'),cv=$('c'),ctx=cv.getContext('2d');
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,t)=>a+(b-a)*t,rnd=(a,b)=>a+Math.random()*(b-a);
 const randn=()=>{let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(6.2832*v)};
-const DIFF={easy:{spd:12,err:1.7,react:.3},medium:{spd:14.7,err:1,react:.17},hard:{spd:17,err:.55,react:.08}};
+const DIFF={easy:{spd:12,err:1.7,react:.3,pop:.24},medium:{spd:14.7,err:1,react:.17,pop:.14},hard:{spd:17,err:.55,react:.08,pop:.09}};
 let diff='medium';
 
-let DPR=1,CW=0,CH=0,SC=10,OX=0,OY=0;
+let LAND=false,DPR=1,CW=0,CH=0,SC=10,OX=0,OY=0;
 function resize(){
   const r=cv.getBoundingClientRect();DPR=Math.min(window.devicePixelRatio||1,2.5);
   CW=Math.max(1,r.width);CH=Math.max(1,r.height);
   cv.width=Math.round(CW*DPR);cv.height=Math.round(CH*DPR);
-  const top=66;
-  SC=Math.min(CW/(W+6),(CH-top-6)/(L+7));
-  OX=(CW-W*SC)/2;OY=top+(CH-top-L*SC)/2;
+  LAND=CW>CH*1.15&&CH<620;
+  app.classList.toggle('land',LAND);
+  if(LAND){SC=Math.min((CW-60)/W,(CH-6)/(L+5));OX=(CW-W*SC)/2;OY=(CH-L*SC)/2}
+  else{const top=66;SC=Math.min((CW-76)/W,(CH-top-6)/(L+7));OX=(CW-W*SC)/2;OY=top+(CH-top-L*SC)/2}
 }
 const wx=x=>OX+x*SC,wy=y=>OY+y*SC,lift=z=>z*SC*.8;
 
 const S={phase:'menu',paused:false,serveTeam:0,serveNum:2,serverIdx:0,score:[0,0],hits:0,rally:0,timer:0,flight:0,
   banner:null,toast:'',toastT:0,server:null,hint:true,shake:0};
-const B={x:10,y:30,z:3,vx:0,vy:0,vz:0,lastTeam:0,bounces:0,live:false,trail:[]};
+const B={x:10,y:30,z:3,vx:0,vy:0,vz:0,lastTeam:0,bounces:0,live:false,spin:0,trail:[]};
 const FX=[];
 
 function mk(team,idx,ctrl,name,col,x,y){
-  return{team,idx,ctrl,name,col,x,y,vx:0,vy:0,swing:0,hitDone:true,intent:null,bob:Math.random()*6,sw:0};
+  return{team,idx,ctrl,name,col,x,y,vx:0,vy:0,swing:0,hitDone:true,intent:null,maxSp:14,lastD:99,bob:Math.random()*6,sw:0};
 }
 const PL=[
   mk(0,0,'human','YOU','#ff6a4d',14.5,L+1.2),
@@ -286,7 +314,7 @@ function updateBall(dt){
   }
   if(B.z<=0){
     const kb=Math.abs(B.y-NET)<=KITCH;
-    B.z=0;B.vz=-B.vz*(kb?.58:.72);B.vx*=kb?.6:.88;B.vy*=kb?.6:.88;B.bounces++;(kb?sfx.soft:sfx.bounce)();
+    B.z=0;{const sl=B.spin&&!kb;B.vz=-B.vz*(kb?.5:sl?.4:.72);const dm=kb?.6:sl?.5:.88;B.vx*=dm;B.vy*=dm}B.spin=0;B.bounces++;(kb?sfx.soft:sfx.bounce)();
     for(let i=0;i<5;i++)FX.push({x:B.x,y:B.y,vx:rnd(-3,3),vy:rnd(-3,3),z:0,vz:rnd(2,5),life:.35,col:'#e6ffd0'});
     const inside=B.x>=-.2&&B.x<=W+.2&&B.y>=-.2&&B.y<=L+.2;
     const side=B.y>NET?0:1;
@@ -330,36 +358,78 @@ function bestGapX(opps){
 }
 
 // ---------- hitting ----------
+// PACE slows every shot a little so rallies last. HIGH: pre-bounce height needed for an overhead. LOW: below this the ball can only be dinked or dropped.
+const PACE=.84,HIGH=3.4,LOW=1.5;
 function canHit(p){
   if(!B.live||B.lastTeam===p.team||S.pending)return 0;
   const onSide=p.team===0?B.y>NET-1.2:B.y<NET+1.2;
   if(!onSide||B.z>7.2)return 0;
-  const d=Math.hypot(B.x-p.x,B.y-p.y);
-  return d>REACH?0:1-d/REACH+.05;
+  const d=Math.hypot(B.x-p.x,B.y-p.y),reach=REACH+(B.bounces===0&&B.z>=HIGH?1.2:0);  // arms up: more reach on overheads
+  return d>reach?0:1-d/reach+.05;
 }
 // Feet (plus toe) on the kitchen or its line count as in the kitchen.
 function inKitchen(p){return Math.abs(p.y-NET)<=KITCH+.8}
 function volleyOK(p){return S.hits>=3&&!inKitchen(p)}
+
+// Launch on a controlled arc that peaks at height 'apex' (ft) and lands on (tx,ty).
+function launchArc(tx,ty,apex){
+  const dx=tx-B.x,dy=ty-B.y,z0=B.z;
+  let A=Math.max(apex,z0+.8),vz=0,T=1;
+  for(let i=0;i<14;i++){
+    vz=Math.sqrt(2*G*(A-z0));T=(vz+Math.sqrt(vz*vz+2*G*z0))/G;
+    const f=dy===0?-1:(NET-B.y)/dy;
+    if(f<=0||f>=1)break;
+    const tn=f*T,zn=z0+vz*tn-.5*G*tn*tn;
+    if(zn>=NET_H+.55)break;
+    A+=.7;
+  }
+  B.vx=dx/T;B.vy=dy/T;B.vz=vz;
+}
+// One shot plan: where it lands (with aim error applied) and how it flies.
+function spec(p,kind,tx,depth,sig,speed,apex){
+  const sd=p.team===0?-1:1;
+  tx+=randn()*sig;depth+=randn()*sig*.75;
+  if(kind==='dink'||kind==='drop')depth=clamp(depth,1.3,6.7);
+  if(kind==='pop')depth=clamp(depth,4,11);
+  return{kind,tx:clamp(tx,-1.5,21.5),ty:NET+sd*depth,speed:speed||0,apex:apex||0};
+}
+
 function tryHit(p){
   const q=canHit(p);if(!q)return;
-  const vol=B.bounces===0;let fault=null;
+  const d=Math.hypot(B.x-p.x,B.y-p.y),z=B.z,bn=B.bounces;
+  const high=bn===0&&z>=HIGH,late=bn>0&&z<.7&&B.vz<0;
+  // Hit at the closest approach so the contact is as good as the player's positioning allows.
+  // Don't wait on a dropping ball, an overhead about to fall out of range, or in the last frames of the swing.
+  const it0=p.intent,wantsSmash=high&&(p.ctrl!=='human'||!it0||it0.kind==='tap'||(it0.kind==='btn'&&it0.shot==='smash')||(it0.kind==='swipe'&&it0.ay<-.4&&it0.len>=120));
+  if(!late&&q<.72&&p.swing>.07&&(B.vz>0||z>1.4)&&(!wantsSmash||z>HIGH+1)&&d<p.lastD-.015){p.lastD=d;return}
+  p.lastD=d;
+  const vol=bn===0;let fault=null;
   if(S.hits===1&&p.team!==S.serveTeam&&p!==S.receiver)fault='Wrong player returned the serve';
   else if(vol&&S.hits<3)fault='Volley before the bounce';
   else if(vol&&(inKitchen(p)||p.kSwing))fault='Volley in the kitchen';
   p.hitDone=true;
-  const sh=p.ctrl==='human'?humanShot(p,p.intent||{kind:'tap'},q):aiShot(p,q);
-  launch(sh.tx,sh.ty,sh.speed);
-  B.lastTeam=p.team;B.bounces=0;B.live=true;S.hits++;S.rally++;S.flight=0;S.hint=false;
+  const hurried=p.ctrl==='human'&&Math.hypot(p.vx,p.vy)>p.maxSp*.88;
+  const c={q:q-(hurried?.12:0),z,bn,high,low:z<LOW,late,vin:Math.hypot(B.vx,B.vy)};
+  const sh=p.ctrl==='human'?humanShot(p,p.intent||{kind:'tap'},c):aiShot(p,c);
+  if(sh.kind==='dink'||sh.kind==='drop'||sh.kind==='pop'){
+    let A=sh.apex;
+    if(sh.kind==='dink')A=Math.max(z+.9,4.5)+Math.max(0,Math.hypot(sh.tx-B.x,sh.ty-B.y)-12)*.25;
+    launchArc(sh.tx,sh.ty,A);
+  }else launch(sh.tx,sh.ty,sh.kind==='lob'?sh.speed:sh.speed*PACE);
+  B.spin=sh.kind==='slice'?1:0;B.lastTeam=p.team;B.bounces=0;B.live=true;S.hits++;S.rally++;S.flight=0;S.hint=false;
+  if(sh.note&&p.ctrl==='human')toast(sh.note,1.1);
   if(fault){S.pending={winner:1-p.team,why:fault,t:.85};toast('Fault! '+fault,1.3);buzz(60)}else if(vol&&p.ctrl==='human')p.mom=.45;
   if(sh.speed>=32){
     sfx.bang();S.shake=Math.max(S.shake,.1);
     if(p.ctrl==='human'){buzz(45);toast('POWER SHOT',.7)}
     for(let i=0;i<8;i++)FX.push({x:B.x,y:B.y,vx:rnd(-9,9),vy:rnd(-9,9),z:B.z,vz:rnd(0,5),life:.35,col:'#ffb23e'});
-  }else{sfx.hit();if(p.ctrl==='human')buzz(18)}
+  }else{sfx.hit();if(p.ctrl==='human')buzz(sh.kind==='pop'?35:18)}
   for(let i=0;i<6;i++)FX.push({x:B.x,y:B.y,vx:rnd(-6,6),vy:rnd(-6,6),z:B.z,vz:rnd(0,4),life:.3,col:'#fff7a8'});
 }
 function startSwing(p,intent){
-  p.swing=.34;p.hitDone=false;p.intent=intent;p.sw=0;
+  // A human press stays armed a little longer when the ball is coming but not in reach yet, so slow balls and early taps still connect.
+  const armed=p.ctrl==='human'&&B.live&&B.lastTeam!==p.team&&!canHit(p)&&B.y>NET-2&&Math.hypot(B.x-p.x,B.y-p.y)<16;
+  p.swing=armed?.62:.34;p.hitDone=false;p.intent=intent;p.sw=0;p.lastD=99;
   p.kSwing=inKitchen(p);if(p.ctrl==='human'){intent.px=p.x;intent.py=p.y}
   if(B.live&&B.lastTeam!==p.team){
     const dx=B.x-p.x,dy=B.y-p.y,d=Math.hypot(dx,dy);
@@ -367,56 +437,88 @@ function startSwing(p,intent){
   }
 }
 
-function humanShot(p,it,q){
-  let pw,depth,tx,speed,kind='drive';
+// Human shots come from a swipe, a tap (auto), or a shot button.
+function humanShot(p,it,c0){
+  let c=c0;
   const ax0=it.px!==undefined?it.px:p.x,ay0=it.py!==undefined?it.py:p.y;
-  if(it.kind==='tap'){
-    tx=bestGapX([PL[2],PL[3]]);
-    pw=Math.abs(p.y-NET)<KITCH+2.5?.1:(S.hits<=2?.42:.58);
-  }else{
-    pw=clamp((it.len-30)/165,0,1);tx=null;
+  const opps=[PL[2],PL[3]],nearNet=Math.abs(p.y-NET)<KITCH+2.8,stick=it.kind==='btn'?(it.ax||0):0;
+  const gapX=()=>Math.abs(stick)>.3?clamp(10+Math.sign(stick)*6.5,3,17):bestGapX(opps);
+  const fromSwipe=it.kind==='swipe';
+  let kind,pw=.5,note=null;
+  if(it.kind==='btn'){kind=it.shot;pw=kind==='smash'?.8:kind==='lob'?.6:kind==='slice'?.5:.56}
+  else if(it.kind==='tap'){kind=c.high?'smash':S.hits===1?'drive':(c.low||nearNet)?'dink':'drive';pw=.5}
+  else{
+    pw=clamp((it.len-30)/165,0,1);
+    if(it.ay>.4)kind='lob';
+    else if(it.len<95)kind='dink';
+    else kind=(c.high&&it.ay<-.4&&it.len>=120)?'smash':'drive';
   }
-  if(it.ay>.4){
-    kind='lob';depth=15+pw*5.5;speed=15;
-    tx=clamp(ax0+it.ax*12,1.8,18.2);
-  }else{
-    depth=1.6+pw*19;
-    if(tx===null){
-      const fwd=Math.max(.3,-it.ay),dyT=Math.abs(ay0-(NET-depth));
-      tx=clamp(ax0+it.ax/fwd*dyT*.85,1.2,18.8);
-    }
-    speed=lerp(9,42,Math.pow(pw,.9));
-    if(B.z>4.4&&B.bounces===0&&pw>.5&&it.ay<-.4){kind='smash';speed=lerp(34,48,pw);depth=Math.max(depth,8)}
+  // Late or stretched contact: only a weak floating pop-up is possible.
+  const popTh=kind==='dink'?.15:kind==='smash'?0:.25;  // an overhead is hit at the edge of reach by nature, so it never pops
+  if(kind!=='lob'&&(c.late||c.q<popTh)){
+    const s=spec(p,'pop',clamp(p.x+(10-p.x)*.4,3,17),rnd(5.5,10.5),.9,0,rnd(6.4,7.4));
+    s.note='POP-UP! '+(c.late?'Hit it too late':'Stretched');return s;
   }
-  const sig=(.4+1.9*pw*pw)*(.6+(1-q)*1.4)*(kind==='smash'?1.35:1)*(it.kind==='tap'?1.15:1);
-  tx+=randn()*sig;depth+=randn()*sig*.8;
-  return{tx:clamp(tx,-1.5,21.5),ty:NET-depth,speed};
+  // A committed overhead button gets a little height grace, since the swing was armed while the ball was still high.
+  if(kind==='smash'&&!c.high&&!(it.kind==='btn'&&c.bn===0&&c.z>=2.9)){kind='drive';note='Too low for an overhead';pw=.5}
+  const swX=dep=>{const fwd=Math.max(.3,-it.ay),dyT=Math.abs(ay0-(NET-dep));return clamp(ax0+it.ax/fwd*dyT*.85,1.2,18.8)};
+  let depth,speed=0,tx,sig,apex=0;
+  if(kind==='smash')c={...c,q:Math.max(c.q,.55)};
+  if(kind==='lob'){
+    depth=fromSwipe?15+pw*5.5:17;speed=15;tx=fromSwipe?clamp(ax0+it.ax*12,1.8,18.2):gapX();
+    sig=(.4+1.9*pw*pw)*(.6+(1-c.q)*1.4);
+  }else if(kind==='dink'){
+    depth=fromSwipe?2.2+clamp((it.len-22)/73,0,1)*3.4:3.6;tx=fromSwipe?swX(depth):gapX();
+    sig=.2+(1-c.q)*.4;
+  }else if(kind==='drop'){
+    depth=fromSwipe?4:3.9;apex=7;tx=fromSwipe?swX(depth):gapX();sig=.3+(1-c.q)*.5;
+  }else if(kind==='smash'){
+    depth=fromSwipe?Math.max(8,1.6+pw*19):10;speed=lerp(34,48,Math.max(pw,.6));tx=fromSwipe?swX(depth):gapX();
+    sig=(.4+1.9*pw*pw)*(.6+(1-c.q)*1.4)*1.2;
+  }else if(kind==='slice'){
+    // Backspin: flat and low, then skids and dies on the bounce so the receiver gets a low ball.
+    depth=11;speed=19;tx=fromSwipe?swX(depth):gapX();sig=.3+(1-c.q)*.7;
+    if(c.low&&S.hits>1){speed=15;depth=9.5}
+  }else{
+    depth=1.6+pw*19;speed=lerp(9,42,Math.pow(pw,.9));tx=fromSwipe?swX(depth):gapX();
+    if(it.kind==='tap'){speed=S.hits<=2?20:26;depth=S.hits<=2?15:11.5}
+    if(it.kind==='btn'){speed=28;depth=13}
+    sig=(.4+1.9*pw*pw)*(.6+(1-c.q)*1.4)*(it.kind==='tap'?1.15:1);
+    // A low ball can't be driven: it can only be reset softly.
+    if(c.low&&S.hits>1){speed=Math.min(speed,16);depth=Math.min(depth,11);note='Low ball: dink or drop'}
+  }
+  const s=spec(p,kind,tx,depth,sig,speed,apex);s.note=note;return s;
 }
 
-function aiShot(p,q){
+function aiShot(p,c){
   const D=p.team===0?DIFF.medium:DIFF[diff];
-  const side=p.team===0?-1:1,opps=teamOf(1-p.team);
-  const near=opps.filter(o=>Math.abs(o.y-NET)<KITCH+2.5).length;
-  const myY=Math.abs(p.y-NET),r=Math.random();
-  let depth,speed,kind;
-  if(B.z>4.3&&B.bounces===0&&r<.85){kind='smash';depth=rnd(5,12);speed=rnd(32,42)}
-  else if(near>=2){
-    if(r<.3){kind='lob';depth=rnd(16,20);speed=15}
-    else if(r<.7){kind='dink';depth=rnd(1.8,4.5);speed=rnd(9,12)}
-    else{kind='drive';depth=rnd(8,17);speed=rnd(26,36)}
-  }else if(myY>12){
-    if(S.hits<=3&&r<.6){kind='dink';depth=rnd(2,4.5);speed=rnd(11,14)}
-    else{kind='drive';depth=rnd(10,19);speed=rnd(24,34)}
-  }else if(r<.5){kind='dink';depth=rnd(1.8,5);speed=rnd(9,12)}
-  else{kind='drive';depth=rnd(8,18);speed=rnd(24,34)}
-  const tx=bestGapX(opps);
-  const sig=D.err*(kind==='drive'?1.1:kind==='smash'?1.4:.7)*(1+(1-q)*1.1);
-  return{tx:clamp(tx+randn()*sig,-1.5,21.5),ty:NET+side*(depth+randn()*sig*.7),speed};
+  const opps=teamOf(1-p.team);
+  const near=opps.filter(o=>Math.abs(o.y-NET)<KITCH+2.8).length;
+  const myY=Math.abs(p.y-NET),r=Math.random(),gx=bestGapX(opps),qf=1+(1-c.q)*1.1;
+  const lob=()=>spec(p,'lob',clamp(10+randn()*4,3,17),rnd(16,20),D.err*.8*qf,15);
+  const drive=(a,b)=>spec(p,'drive',gx,rnd(a,b),D.err*1.1*qf,rnd(24,33));
+  const dink=()=>spec(p,'dink',gx,rnd(1.8,5),D.err*.5*qf);
+  const slice=()=>spec(p,'slice',gx,rnd(9,14),D.err*.8*qf,rnd(17,21));
+  const drop=()=>spec(p,'drop',gx,rnd(2.8,6),D.err*.6*qf,0,7);
+  if(c.late||(c.q<D.pop&&!c.high))return spec(p,'pop',clamp(10+randn()*3,3,17),rnd(5.5,10.5),.9,0,rnd(6.4,7.4));
+  if(S.hits===1)return spec(p,'drive',gx,rnd(13,19),D.err*.9*qf,rnd(17,23));
+  if(c.high&&r<.85)return spec(p,'smash',gx,rnd(6,12),D.err*1.4*(1+(1-Math.max(c.q,.55))*1.1),rnd(32,42));
+  // Fast balls hit at a player near the net get blocked back soft, so spamming drives doesn't pay.
+  if(c.vin>=21&&myY<=KITCH+4.5)return dink();
+  if(c.low){
+    if(near>=2&&r<.3)return lob();
+    return myY>12?drop():dink();
+  }
+  if(near>=2)return r<.2?lob():r<.6?dink():r<.78?slice():drive(8,17);
+  if(myY>12)return(S.hits<=3&&r<.6)?drop():r<.8?slice():drive(10,19);
+  return r<.55?dink():drive(8,18);
 }
 
 function serveTarget(it){
-  const bx=S.sbx,c=(bx[0]+bx[1])/2,pw=it.kind==='tap'?.45:clamp((it.len-30)/165,0,1);
-  return{pw,depth:8.8+pw*11.4,tx:clamp(c+(it.kind==='tap'?0:it.ax*5.5),bx[0]+1.3,bx[1]-1.3)};
+  const bx=S.sbx,c=(bx[0]+bx[1])/2,BTN={dink:.3,drop:.35,slice:.5,drive:.7,smash:.8,lob:.95};
+  const pw=it.kind==='tap'?.45:it.kind==='btn'?(BTN[it.shot]||.45):clamp((it.len-30)/165,0,1);
+  const lean=it.kind==='tap'?0:it.kind==='btn'?(it.ax||0)*4:it.ax*5.5;
+  return{pw,depth:8.8+pw*11.4,tx:clamp(c+lean,bx[0]+1.3,bx[1]-1.3)};
 }
 function doServe(p,it){
   const side=p.team===0?-1:1,bx=S.sbx;
@@ -428,15 +530,15 @@ function doServe(p,it){
     const D=DIFF[diff];depth=rnd(9,19.5);speed=rnd(18,28);tx=rnd(bx[0]+1.6,bx[1]-1.6);sig=.3+D.err*.4;
   }
   B.x=p.x;B.y=p.y+(p.team===0?-.9:.9);B.z=2.8;
-  launch(tx+randn()*sig,NET+side*(depth+randn()*sig*.6),speed);
-  B.lastTeam=p.team;B.bounces=0;B.live=true;S.hits=1;S.rally=1;S.flight=0;S.phase='rally';S.hint=false;
+  launch(tx+randn()*sig,NET+side*(depth+randn()*sig*.6),speed*PACE);
+  B.spin=0;B.lastTeam=p.team;B.bounces=0;B.live=true;S.hits=1;S.rally=1;S.flight=0;S.phase='rally';S.hint=false;
   p.swing=.34;p.hitDone=true;p.sw=0;sfx.hit();
 }
 
 // ---------- AI ----------
 const predCache=[null,null];
 function predict(team){
-  const s={x:B.x,y:B.y,z:B.z,vx:B.vx,vy:B.vy,vz:B.vz,bn:B.bounces},dt=1/30,mustBounce=S.hits<3;
+  const s={x:B.x,y:B.y,z:B.z,vx:B.vx,vy:B.vy,vz:B.vz,bn:B.bounces,sp:B.spin},dt=1/30,mustBounce=S.hits<3;
   let tb=-1,bpt=null;
   for(let i=0;i<110;i++){
     const py=s.y;
@@ -444,7 +546,7 @@ function predict(team){
     if((py-NET)*(s.y-NET)<0&&s.z<NET_H)return{dead:true};
     const mine=team===0?s.y>NET:s.y<NET;
     if(s.z<=0){
-      const kb=Math.abs(s.y-NET)<=KITCH;s.z=0;s.vz=-s.vz*(kb?.58:.72);s.vx*=kb?.6:.88;s.vy*=kb?.6:.88;s.bn++;
+      const kb=Math.abs(s.y-NET)<=KITCH;s.z=0;{const sl=s.sp&&!kb;s.vz=-s.vz*(kb?.5:sl?.4:.72);const dm=kb?.6:sl?.5:.88;s.vx*=dm;s.vy*=dm}s.sp=0;s.bn++;
       const inside=s.x>=-.2&&s.x<=W+.2&&s.y>=-.2&&s.y<=L+.2;
       if(s.bn===1){if(!mine||!inside)return{dead:true};bpt={x:s.x,y:s.y,t:i*dt};tb=i}
       if(s.bn>=2)break;
@@ -456,6 +558,22 @@ function predict(team){
   }
   return bpt?{x:bpt.x,y:bpt.y,t:bpt.t}:{dead:true};
 }
+// Where a high incoming ball comes down into smash height (null when it can't be smashed).
+function smashSpot(){
+  if(!B.live||B.lastTeam!==1||B.bounces!==0||S.hits<2||S.pending)return null;
+  const s={x:B.x,y:B.y,z:B.z,vx:B.vx,vy:B.vy,vz:B.vz},dt=1/30;
+  for(let i=0;i<90;i++){
+    const py=s.y;s.vz-=G*dt;s.x+=s.vx*dt;s.y+=s.vy*dt;s.z+=s.vz*dt;
+    if((py-NET)*(s.y-NET)<0&&s.z<NET_H)return null;
+    if(s.z<=0)return null;
+    if(s.y>NET&&s.vz<0&&s.z<=HIGH+.5){
+      if(s.z<HIGH-.4||inKitchen({y:s.y})||s.x<-1||s.x>W+1||s.y>L+1)return null;
+      return{x:s.x,y:s.y,t:i*dt};
+    }
+  }
+  return null;
+}
+let spotCache=null;
 function chooser(team){
   const pr=predCache[team];
   if(!pr||pr.dead)return null;
@@ -496,6 +614,7 @@ function moveTo(p,tx,ty,spd,dt){
 }
 function aiUpdate(p,dt){
   const D=p.team===0?DIFF.medium:DIFF[diff];
+  p.maxSp=D.spd;
   const rally=S.phase==='rally'&&B.live;
   let tgt=null,swingNow=false;
   if(rally&&B.lastTeam!==p.team&&S.flight>D.react&&chooser(p.team)===p){
@@ -503,6 +622,7 @@ function aiUpdate(p,dt){
     if(pr.volley){const lim=KITCH+2;tgt.y=p.team===0?Math.max(tgt.y,NET+lim):Math.min(tgt.y,NET-lim)}
     if(canHit(p)&&(B.bounces>0||(volleyOK(p)&&Math.abs(p.y-NET)>KITCH+1.8))&&p.swing<=0)swingNow=true;
   }
+  if(p.swing>0&&!p.hitDone&&B.live&&B.lastTeam!==p.team)tgt={x:B.x,y:B.y};  // keep tracking the real ball during the swing
   if(!tgt)tgt=formation(p);
   if(S.phase==='serve'){p.vx=p.vy=0;return}  // hold the starting spot until the serve is hit
   moveTo(p,tgt.x,tgt.y,D.spd,dt);
@@ -552,7 +672,19 @@ function endPtr(e){
 }
 app.addEventListener('pointerup',endPtr);
 app.addEventListener('pointercancel',endPtr);
+const SHOTS=['dink','drop','slice','drive','lob','smash'];
+// An overhead needs a high ball that hasn't bounced, and your feet out of the kitchen.
+function smashReady(){return B.live&&B.lastTeam===1&&B.bounces===0&&S.hits>=3&&B.vy>0&&B.z>=3.4&&!inKitchen(PL[0])}
+function pressShot(s){
+  if(!(S.phase==='serve'||S.phase==='rally')||S.paused)return;
+  initAudio();
+  if(S.phase==='rally'&&s==='smash'&&!smashReady()){
+    toast(inKitchen(PL[0])&&B.bounces===0&&B.z>=3.4?'Step out of the kitchen first':'Ball is too low to smash',.9);return;
+  }
+  IN.q={kind:'btn',shot:s,ax:IN.mx,ay:IN.my,len:0};
+}
 window.addEventListener('keydown',e=>{
+  if(e.key>='1'&&e.key<='6'&&!e.repeat)pressShot(SHOTS[+e.key-1]);
   IN.keys[e.key.toLowerCase()]=1;
   if(e.key===' '&&playing()){initAudio();IN.q={kind:'tap',ax:0,ay:-1,len:0};e.preventDefault()}
 });
@@ -563,6 +695,7 @@ function humanMove(p,dt){
   const k=IN.keys;
   const kx=(k.d||k.arrowright?1:0)-(k.a||k.arrowleft?1:0),ky=(k.s||k.arrowdown?1:0)-(k.w||k.arrowup?1:0);
   if(kx||ky){const d=Math.hypot(kx,ky);mx=kx/d;my=ky/d}
+  p.maxSp=17.25;
   const frozen=S.phase==='serve'&&p===S.server;
   const sp=17.25;
   const plant=p.swing>0?.85:1;
@@ -594,8 +727,9 @@ function update(dt){
     if(B.live){
       for(let t=0;t<2;t++)if(B.lastTeam!==t)predCache[t]=predict(t);
     }
+    spotCache=smashSpot();
     if(IN.q){startSwing(PL[0],IN.q);IN.q=null;learned=true}
-  }else IN.q=S.phase==='serve'?IN.q:null;
+  }else{IN.q=S.phase==='serve'?IN.q:null;spotCache=null}
   for(const p of PL){
     if(p.ctrl==='human')humanMove(p,dt);else aiUpdate(p,dt);
     p.x+=p.vx*dt;p.y+=p.vy*dt;p.bob+=dt*Math.hypot(p.vx,p.vy)*.5;
@@ -608,7 +742,7 @@ function update(dt){
       }
     }
     if(p.swing>0){
-      p.swing-=dt;p.sw=1-p.swing/.34;
+      p.swing-=dt;p.sw=clamp(1-p.swing/.34,0,1);
       if(!p.hitDone&&S.phase==='rally')tryHit(p);
       if(p.swing<=0){p.swing=0;p.hitDone=true}
     }
@@ -704,7 +838,17 @@ function aimPreview(it){
 }
 function drawControls(){
   const pulse=.5+.5*Math.sin(performance.now()/260);
-  if(S.phase==='rally'&&predCache[0]&&!predCache[0].dead&&B.lastTeam===1){
+  if(S.phase==='rally'&&spotCache&&B.lastTeam===1){
+    // The ball will come down in smash range here: a star instead of the plain landing ring.
+    const sx=wx(spotCache.x),sy=wy(spotCache.y),R=SC*1.6*(1+.12*pulse);
+    ctx.save();ctx.translate(sx,sy);ctx.scale(1,.62);
+    ctx.shadowColor='#ff6a4d';ctx.shadowBlur=14;
+    ctx.fillStyle='rgba(255,106,77,'+(.55+.35*pulse)+')';ctx.strokeStyle='#ffd0b8';ctx.lineWidth=2;
+    ctx.beginPath();
+    for(let i=0;i<10;i++){const a=-1.5708+i*.6283,r=i%2?R*.45:R;ctx[i?'lineTo':'moveTo'](Math.cos(a)*r,Math.sin(a)*r)}
+    ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();
+    ctx.textAlign='center';ctx.fillStyle='#ffd0b8';ctx.font='400 11px '+FONT_D;ctx.fillText('SMASH',sx,sy-R*.62-6);
+  }else if(S.phase==='rally'&&predCache[0]&&!predCache[0].dead&&B.lastTeam===1){
     const pr=predCache[0];ctx.strokeStyle='rgba(216,255,62,'+(.35+.3*pulse)+')';ctx.lineWidth=2;
     ctx.beginPath();ctx.ellipse(wx(pr.x),wy(pr.y),SC*1.2,SC*.6,0,0,6.2832);ctx.stroke();
   }
@@ -729,10 +873,28 @@ function drawControls(){
   }
   if(!learned&&!IN.joy&&!IN.swp&&playing()){
     ctx.font='400 12px '+FONT_D;ctx.textAlign='center';ctx.fillStyle='rgba(243,247,238,'+(.45+.3*pulse)+')';
-    ctx.fillText('DRAG TO MOVE',CW*.25,CH-22);ctx.fillText('SWIPE TO HIT',CW*.75,CH-22);
+    if(LAND){const top=Math.max(8,CH/2-70);ctx.fillText('DRAG TO MOVE',OX/2-6,top+150);ctx.fillText('SWIPE OR TAP',OX+W*SC+(CW-OX-W*SC)/2-30,top+90)}
+    else{ctx.fillText('DRAG TO MOVE',CW*.27,wy(NET+10));ctx.fillText('SWIPE OR TAP',CW*.7,wy(NET+10))}
   }
 }
+function sideCard(x,y,w,h,label,score,col,serving){
+  ctx.fillStyle='rgba(22,48,45,.9)';rrect(x,y,w,h,12);ctx.fill();ctx.strokeStyle='#2c524c';ctx.lineWidth=1;ctx.stroke();
+  ctx.textAlign='center';ctx.fillStyle=col;ctx.font='500 10px '+FONT_B;ctx.fillText(label,x+w/2,y+17);
+  ctx.fillStyle='#f3f7ee';ctx.font='400 28px '+FONT_D;ctx.fillText(String(score),x+w/2,y+h-12);
+  if(serving){ctx.fillStyle='#d8ff3e';ctx.beginPath();ctx.arc(x+w/2+ctx.measureText(String(score)).width/2+10,y+h-22,4,0,6.28);ctx.fill()}
+}
 function drawHUD(){
+  if(LAND){
+    const st=S.serveTeam,cw=Math.min(118,OX-14),cx=OX-cw-10,top=Math.max(8,CH/2-70);
+    sideCard(cx,top,cw,56,'YOU+PAL',S.score[0],'#ffb23e',st===0);
+    // call-out under it: serving score, server number
+    ctx.fillStyle='rgba(22,48,45,.9)';rrect(cx,top+64,cw,54,12);ctx.fill();ctx.strokeStyle='#2c524c';ctx.lineWidth=1;ctx.stroke();
+    ctx.textAlign='center';ctx.fillStyle='#9db3a8';ctx.font='500 10px '+FONT_B;ctx.fillText('SERVE',cx+cw/2,top+81);
+    ctx.fillStyle='#d8ff3e';ctx.font='400 20px '+FONT_D;ctx.fillText(S.score[st]+'-'+S.score[1-st]+'-'+S.serveNum,cx+cw/2,top+106);
+    const rx=OX+W*SC+10,rw=Math.min(118,CW-rx-8);
+    sideCard(rx,Math.max(8,top),rw,56,'RIVALS',S.score[1],'#a99cff',st===1);
+    return;
+  }
   const w=CW-148,y=8,h=48,st=S.serveTeam;
   ctx.fillStyle='rgba(22,48,45,.9)';rrect(0,y,w,h,12);ctx.fill();
   ctx.strokeStyle='#2c524c';ctx.lineWidth=1;ctx.stroke();
@@ -741,24 +903,25 @@ function drawHUD(){
     ctx.fillStyle='#f3f7ee';ctx.font='400 26px '+FONT_D;ctx.fillText(String(score),cx,y+42);
     if(serving){ctx.fillStyle='#d8ff3e';ctx.beginPath();ctx.arc(cx+ctx.measureText(String(score)).width/2+9,y+34,4,0,6.28);ctx.fill()}
   };
-  blk('YOU + PAL',S.score[0],w*.2,'#ffb23e',st===0);
+  blk('YOU+PAL',S.score[0],w*.2,'#ffb23e',st===0);
   blk('RIVALS',S.score[1],w*.8,'#a99cff',st===1);
-  ctx.textAlign='center';ctx.fillStyle='#9db3a8';ctx.font='500 10px '+FONT_B;ctx.fillText('SERVE CALL',w/2,y+17);
+  ctx.textAlign='center';ctx.fillStyle='#9db3a8';ctx.font='500 10px '+FONT_B;ctx.fillText('SERVE',w/2,y+17);
   ctx.fillStyle='#d8ff3e';ctx.font='400 20px '+FONT_D;
   ctx.fillText(S.score[st]+'-'+S.score[1-st]+'-'+S.serveNum,w/2,y+40);
 }
 function drawOverlays(){
   if(S.phase==='serve'){
-    ctx.textAlign='center';ctx.font='400 14px '+FONT_D;
-    const hum=S.server.ctrl==='human',pulse=.55+.45*Math.sin(performance.now()/300);
-    ctx.fillStyle='rgba(216,255,62,'+(hum?pulse:.8)+')';
-    ctx.fillText(hum?'SWIPE UP TO SERVE':(S.server.team===0?'PARTNER SERVES':'RIVALS SERVE'),CW/2,CH-46);
-    if(hum){ctx.fillStyle='rgba(243,247,238,.6)';ctx.font='500 12px '+FONT_B;ctx.fillText('Serve diagonally into the box, past the kitchen. Swipe sideways to aim.',CW/2,CH-28)}
+    const hum=S.server.ctrl==='human',pulse=.55+.45*Math.sin(performance.now()/300),py=wy(NET+1.1),pw=LAND?W*SC+8:Math.min(300,CW*.86),f1=LAND?11:15,f2=LAND?10:12;
+    ctx.fillStyle='rgba(15,31,30,.82)';rrect(CW/2-pw/2,py,pw,hum?58:36,14);ctx.fill();
+    ctx.textAlign='center';ctx.font='400 '+f1+'px '+FONT_D;
+    ctx.fillStyle='rgba(216,255,62,'+(hum?pulse:.9)+')';
+    ctx.fillText(hum?'SWIPE OR TAP TO SERVE':(S.server.team===0?'PARTNER SERVES':'RIVALS SERVE'),CW/2,py+(hum?24:23));
+    if(hum){ctx.fillStyle='rgba(243,247,238,.75)';ctx.font='500 '+f2+'px '+FONT_B;ctx.fillText(LAND?'Diagonal, past the kitchen':'Land it diagonally, past the kitchen',CW/2,py+44)}
   }
   if(S.toastT>0&&S.phase==='rally'){
     ctx.font='400 15px '+FONT_D;ctx.textAlign='center';const tw=ctx.measureText(S.toast).width+28;
-    ctx.fillStyle='rgba(15,31,30,.92)';rrect(CW/2-tw/2,76,tw,32,16);ctx.fill();
-    ctx.fillStyle='#ffb23e';ctx.fillText(S.toast,CW/2,97);
+    ctx.fillStyle='rgba(15,31,30,.92)';rrect(CW/2-tw/2,LAND?8:76,tw,32,16);ctx.fill();
+    ctx.fillStyle='#ffb23e';ctx.fillText(S.toast,CW/2,LAND?29:97);
   }
   if(S.phase==='point'&&S.banner){
     const b=S.banner;ctx.textAlign='center';
@@ -811,23 +974,46 @@ document.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>{
 }));
 $('bPlay').onclick=startGame;$('bAgain').onclick=startGame;$('bMenu').onclick=toMenu;
 $('bPause').onclick=()=>setPaused(!S.paused);$('bResume').onclick=()=>setPaused(false);$('bQuit').onclick=toMenu;
+const btnEls={};document.querySelectorAll('.shot').forEach(b=>{
+  btnEls[b.dataset.s]=b;
+  b.addEventListener('pointerdown',e=>{
+    e.preventDefault();e.stopPropagation();
+    pressShot(b.dataset.s);b.classList.add('hit');setTimeout(()=>b.classList.remove('hit'),130);
+  });
+});
+let btnKey='';
+function updateButtons(){
+  const act=S.phase==='rally',sm=act&&smashReady();
+  const lowIn=act&&B.live&&B.lastTeam===1&&B.bounces>0&&B.z<1.4;
+  const key=[sm,lowIn,act].join();if(key===btnKey)return;btnKey=key;
+  btnEls.smash.classList.toggle('ready',sm);btnEls.smash.classList.toggle('off',act&&!sm);
+  btnEls.dink.classList.toggle('ready',lowIn);btnEls.drop.classList.toggle('ready',lowIn);
+  btnEls.drive.classList.toggle('off',lowIn);
+}
+// Keep the button column hugging the right edge of the court.
+function layoutShots(){
+  const el=$('shots'),aw=app.getBoundingClientRect().width;
+  const bw=LAND?98:46;
+  let left=CL+OX+W*SC+(LAND?10:6);if(left+bw>aw-4)left=aw-bw-4;
+  el.style.left=left+'px';
+
+}
 $('bMute').onclick=()=>{muted=!muted;$('bMute').style.opacity=muted?.45:1;if(!muted)initAudio()};
 $('bMusic').onclick=()=>{setMusic(!musicOn);$('bMusic').style.opacity=musicOn?1:.45;$('bMusic').setAttribute('aria-pressed',String(musicOn))};
 $('bMusic').style.opacity=musicOn?1:.45;$('bMusic').setAttribute('aria-pressed',String(musicOn));
 document.addEventListener('visibilitychange',()=>{if(document.hidden)setPaused(true)});
-window.addEventListener('resize',()=>{resize();CL=cv.getBoundingClientRect().left-app.getBoundingClientRect().left});
+window.addEventListener('resize',()=>{resize();CL=cv.getBoundingClientRect().left-app.getBoundingClientRect().left;layoutShots()});
 
 let last=0;
 function frame(t){
   requestAnimationFrame(frame);
   const dt=Math.min(.05,(t-last)/1000||0);last=t;
   if(!S.paused){let acc=dt;while(acc>0){const h=Math.min(acc,1/90);update(h);acc-=h}}
-  draw();
+  updateButtons();draw();
 }
-resize();CL=cv.getBoundingClientRect().left-app.getBoundingClientRect().left;
+resize();CL=cv.getBoundingClientRect().left-app.getBoundingClientRect().left;layoutShots();
 setupServe();S.phase='menu';
 if(document.fonts&&document.fonts.load){document.fonts.load('400 20px Bungee');document.fonts.load('500 12px Rubik')}
 requestAnimationFrame(frame);
 })();
-
-</script>
+</script></body></html>
