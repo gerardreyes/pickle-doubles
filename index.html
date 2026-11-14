@@ -52,6 +52,10 @@ h2{font-family:var(--display);font-weight:400;font-size:28px;line-height:1.1;mar
 .shot.ready{background:var(--c);color:#13231f;animation:glow .7s ease-in-out infinite alternate}
 .shot.ready small{opacity:.8}
 .shot.off{opacity:.3}
+.shot.charging{background:linear-gradient(to top,var(--c) calc(var(--ch,0)*100%),rgba(22,48,45,.9) calc(var(--ch,0)*100%));color:var(--ink)}
+.shot.charging small{opacity:.9}
+.shot.full{box-shadow:0 0 14px 3px var(--c)}
+.shot{-webkit-user-select:none;user-select:none}
 .shot.hit{transform:scale(.92);background:var(--c);color:#13231f}
 .shot:focus-visible{outline:2px solid var(--lime);outline-offset:2px}
 @keyframes glow{from{box-shadow:0 0 0 0 transparent}to{box-shadow:0 0 12px 2px var(--c)}}
@@ -60,6 +64,27 @@ h2{font-family:var(--display);font-weight:400;font-size:28px;line-height:1.1;mar
 /* Landscape: no top bar, so the court gets the full height; score cards live at the sides and shot buttons form a 2x3 grid. */
 #app.land .shots{display:grid;grid-template-columns:repeat(2,46px);width:auto;bottom:10px}
 #app.land .topbtns{top:6px}
+.joinrow{display:flex;gap:8px;margin-top:12px}
+.joinrow input{flex:1;min-width:0;box-sizing:border-box;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);
+  font:400 22px var(--display);letter-spacing:.24em;text-transform:uppercase;text-align:center;-webkit-user-select:text;user-select:text}
+.joinrow input:focus-visible{outline:2px solid var(--lime);outline-offset:2px}
+.joinrow .btn{width:auto;margin:0;padding:12px 20px}
+.or{display:flex;align-items:center;gap:10px;margin:16px 0 0;color:var(--dim);font-size:12px;letter-spacing:.14em;text-transform:uppercase}
+.or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
+.code{font:400 48px/1 var(--display);letter-spacing:.2em;color:var(--lime);text-align:center;margin:2px 0 12px;padding-left:.2em}
+.status{text-align:center;color:var(--dim)!important}
+.btn:disabled{opacity:.4;cursor:default}
+.slots{display:grid;gap:10px;margin:0 0 14px}
+.team{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tlabel{grid-column:1/-1;margin:0!important;font-size:11px!important;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)!important}
+.slot{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:9px 12px;border-radius:12px;border:1px dashed var(--line);
+  background:transparent;color:var(--ink);cursor:pointer;text-align:left;min-width:0}
+.slot b{font:400 16px var(--display);color:var(--dim)}
+.slot span{font:500 12px var(--body);color:var(--dim)}
+.slot.taken{border-style:solid}.slot.taken b{color:var(--amber)}
+.slot.me{border:2px solid var(--lime);background:rgba(216,255,62,.08)}.slot.me b,.slot.me span{color:var(--lime)}
+.slot:disabled{cursor:default}
+.slot:not(:disabled):hover{border-color:var(--lime)}
 .big{font-family:var(--display);font-size:44px;line-height:1;margin:4px 0 14px;color:var(--ink)}
 </style>
 
@@ -92,12 +117,43 @@ h2{font-family:var(--display);font-weight:400;font-size:28px;line-height:1.1;mar
       </div>
       <ul class="how">
         <li><b>MOVE</b><span>Drag the left half like a joystick.</span></li>
-        <li><b>HIT</b><span>Swipe the right half (short dink, long drive, down lob) or tap a shot button. Hold the stick sideways to aim.</span></li>
+        <li><b>HIT</b><span>Swipe the right half (short dink, long drive, down lob) or tap a shot button. Hold a shot button to charge power. Hold the stick sideways to aim.</span></li>
         <li><b>TIPS</b><span>Low balls can only be dinked or dropped. A star on the court means you can smash. Slice keeps it low. Reach late and it pops up.</span></li>
         <li><b>RULES</b><span>Serve diagonally past the kitchen. Serve and return must bounce. No volleys from the kitchen.</span></li>
       </ul>
       <button id="bPlay" class="btn">Play</button>
-      <p class="credit">Made by <b>Gerard Reyes</b> with Claude Fable 5.2 · <span class="ver" id="verN">v1.5</span></p>
+      <button id="bFriend" class="btn ghost">Play online with friends</button>
+      <p class="credit">Made by <b>Gerard Reyes</b> with Claude Fable 5.2 · <span class="ver" id="verN">v2.1</span></p>
+    </div>
+  </div>
+
+  <div id="mNet" class="overlay" hidden>
+    <div class="card">
+      <p class="eyebrow">Online · up to 4 players · beta</p>
+      <h2>Play with friends</h2>
+      <div id="nChoose">
+        <p id="nMsg">Up to 4 players, each on their own phone. Empty spots are played by the AI.</p>
+        <button id="bHost" class="btn">Host a game</button>
+        <p class="or">or join one</p>
+        <div class="joinrow">
+          <input id="nCode" maxlength="4" placeholder="CODE" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Room code from your friend">
+          <button id="bJoin" class="btn">Join</button>
+        </div>
+      </div>
+      <div id="nRoom" hidden>
+        <p class="eyebrow">Room code</p>
+        <div class="code" id="nCodeShow">----</div>
+        <p class="status" id="nStatus">Waiting for your friend…</p>
+        <div class="slots" id="nSlots"></div>
+        <p class="status" id="nGuestNote" hidden>Tap a free spot to switch. The host picks the AI level and starts.</p>
+        <div class="chips" id="nChips" role="group" aria-label="Rival level">
+          <button class="chip" data-d="easy" aria-pressed="false">Easy</button>
+          <button class="chip" data-d="medium" aria-pressed="true">Medium</button>
+          <button class="chip" data-d="hard" aria-pressed="false">Hard</button>
+        </div>
+        <button id="bNetStart" class="btn" disabled>Start match</button>
+      </div>
+      <button id="bNetBack" class="btn ghost">Back</button>
     </div>
   </div>
 
@@ -106,7 +162,7 @@ h2{font-family:var(--display);font-weight:400;font-size:28px;line-height:1.1;mar
       <h2>Paused</h2>
       <button id="bResume" class="btn">Resume</button>
       <button id="bQuit" class="btn ghost">Quit to menu</button>
-      <p class="credit">Made by <b>Gerard Reyes</b> with Claude Fable 5.2 · <span class="ver" id="verN">v1.5</span></p>
+      <p class="credit">Made by <b>Gerard Reyes</b> with Claude Fable 5.2 · <span class="ver" id="verN">v2.1</span></p>
     </div>
   </div>
 
@@ -115,9 +171,10 @@ h2{font-family:var(--display);font-weight:400;font-size:28px;line-height:1.1;mar
       <p class="eyebrow" id="oSub">Final score</p>
       <h2 id="oTitle">You win</h2>
       <div class="big" id="oScore">11 - 7</div>
+      <p class="status" id="oWait" hidden>Waiting for the host to start a rematch…</p>
       <button id="bAgain" class="btn">Rematch</button>
       <button id="bMenu" class="btn ghost">Change level</button>
-      <p class="credit">Made by <b>Gerard Reyes</b> with Claude Fable 5.2 · <span class="ver" id="verN">v1.5</span></p>
+      <p class="credit">Made by <b>Gerard Reyes</b> with Claude Fable 5.2 · <span class="ver" id="verN">v2.1</span></p>
     </div>
   </div>
 </div>
@@ -133,6 +190,9 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,t)=>a+(b-a)*t,rnd=(a,b)
 const randn=()=>{let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(6.2832*v)};
 const DIFF={easy:{spd:12,err:1.7,react:.3,pop:.24},medium:{spd:14.7,err:1,react:.17,pop:.14},hard:{spd:17,err:.55,react:.08,pop:.09}};
 let diff='medium';
+let ME=0;     // which player this screen controls (0 = host/solo; online guests get 1, 2 or 3)
+let FLIP=false;  // a player on the far team sees the court turned around, so their side is at the bottom
+const VT=()=>PL[ME].team;  // the viewer's team
 
 let LAND=false,DPR=1,CW=0,CH=0,SC=10,OX=0,OY=0;
 function resize(){
@@ -144,7 +204,9 @@ function resize(){
   if(LAND){SC=Math.min((CW-60)/W,(CH-6)/(L+5));OX=(CW-W*SC)/2;OY=(CH-L*SC)/2}
   else{const top=66;SC=Math.min((CW-76)/W,(CH-top-6)/(L+7));OX=(CW-W*SC)/2;OY=top+(CH-top-L*SC)/2}
 }
-const wx=x=>OX+x*SC,wy=y=>OY+y*SC,lift=z=>z*SC*.8;
+const wx=x=>OX+(FLIP?W-x:x)*SC,wy=y=>OY+(FLIP?L-y:y)*SC,lift=z=>z*SC*.8;
+// Screen rectangle for a world-space box (works with the turned-around view).
+function wrect(x0,y0,x1,y1){const a=wx(x0),b=wx(x1),c=wy(y0),d=wy(y1);return[Math.min(a,b),Math.min(c,d),Math.abs(b-a),Math.abs(d-c)]}
 
 const S={phase:'menu',paused:false,serveTeam:0,serveNum:2,serverIdx:0,score:[0,0],hits:0,rally:0,timer:0,flight:0,
   banner:null,toast:'',toastT:0,server:null,hint:true,shake:0};
@@ -152,7 +214,7 @@ const B={x:10,y:30,z:3,vx:0,vy:0,vz:0,lastTeam:0,bounces:0,live:false,spin:0,tra
 const FX=[];
 
 function mk(team,idx,ctrl,name,col,x,y){
-  return{team,idx,ctrl,name,col,x,y,vx:0,vy:0,swing:0,hitDone:true,intent:null,maxSp:14,lastD:99,bob:Math.random()*6,sw:0};
+  return{team,idx,ctrl,name,col,x,y,inp:null,vx:0,vy:0,swing:0,hitDone:true,intent:null,maxSp:14,lastD:99,bob:Math.random()*6,sw:0};
 }
 const PL=[
   mk(0,0,'human','YOU','#ff6a4d',14.5,L+1.2),
@@ -260,7 +322,13 @@ function setMusic(v){
 function buzz(ms){try{navigator.vibrate&&navigator.vibrate(ms)}catch(e){}}
 
 // ---------- serve setup and scoring ----------
-function toast(t,s){S.toast=t;S.toastT=s||1.1}
+// who: only that player's screen (undefined = everyone). Online, the host forwards it to the partner.
+function toast(t,s,who){
+  if(typeof netToast==='function')netToast(t,s,who);
+  if(who&&who!==PL[ME])return;
+  S.toast=t;S.toastT=s||1.1;
+}
+function pbuzz(p,ms){if(p===PL[ME])buzz(ms);else if(typeof netBuzz==='function')netBuzz(p,ms)}
 function setupServe(){
   const st=S.serveTeam,rt=1-st,even=S.score[st]%2===0;
   const sv=PL[st*2+S.serverIdx],pt=PL[st*2+1-S.serverIdx];
@@ -286,14 +354,14 @@ function endPoint(winner,why){
   const a=S.score[0],b=S.score[1];
   const over=(a>=11||b>=11)&&Math.abs(a-b)>=2;
   const you=winner===0;
-  S.banner={title:you?'Point you':'Point rivals',sub:why,col:you?'#d8ff3e':'#ff8f7a'};
+  S.banner={w:winner,sub:why};  // drawn from the viewer's side
   S.shake=you?0:.25;
   (you?sfx.win:sfx.lose)();
   if(over){S.over=true}
 }
 function showOver(){
   S.phase='over';
-  const a=S.score[0],b=S.score[1],win=a>b;
+  const t=VT(),a=S.score[t],b=S.score[1-t],win=a>b;
   $('oTitle').textContent=win?'You win':'Rivals win';
   $('oSub').textContent=win?'Great doubles':'Run it back';
   $('oScore').textContent=a+' - '+b;
@@ -417,13 +485,13 @@ function tryHit(p){
     launchArc(sh.tx,sh.ty,A);
   }else launch(sh.tx,sh.ty,sh.kind==='lob'?sh.speed:sh.speed*PACE);
   B.spin=sh.kind==='slice'?1:0;B.lastTeam=p.team;B.bounces=0;B.live=true;S.hits++;S.rally++;S.flight=0;S.hint=false;
-  if(sh.note&&p.ctrl==='human')toast(sh.note,1.1);
+  if(sh.note&&p.ctrl==='human')toast(sh.note,1.1,p);
   if(fault){S.pending={winner:1-p.team,why:fault,t:.85};toast('Fault! '+fault,1.3);buzz(60)}else if(vol&&p.ctrl==='human')p.mom=.45;
   if(sh.speed>=32){
     sfx.bang();S.shake=Math.max(S.shake,.1);
-    if(p.ctrl==='human'){buzz(45);toast('POWER SHOT',.7)}
+    if(p.ctrl==='human'){pbuzz(p,45);toast('POWER SHOT',.7,p)}
     for(let i=0;i<8;i++)FX.push({x:B.x,y:B.y,vx:rnd(-9,9),vy:rnd(-9,9),z:B.z,vz:rnd(0,5),life:.35,col:'#ffb23e'});
-  }else{sfx.hit();if(p.ctrl==='human')buzz(sh.kind==='pop'?35:18)}
+  }else{sfx.hit();if(p.ctrl==='human')pbuzz(p,sh.kind==='pop'?35:18)}
   for(let i=0;i<6;i++)FX.push({x:B.x,y:B.y,vx:rnd(-6,6),vy:rnd(-6,6),z:B.z,vz:rnd(0,4),life:.3,col:'#fff7a8'});
 }
 function startSwing(p,intent){
@@ -438,14 +506,22 @@ function startSwing(p,intent){
 }
 
 // Human shots come from a swipe, a tap (auto), or a shot button.
+// A human on the far team: work the shot out in a mirrored court (as if they were at the bottom), then mirror it back.
 function humanShot(p,it,c0){
+  if(p.team===0)return humanShotCore(p,it,c0,teamOf(1));
+  const m=o=>({...o,x:W-o.x,y:L-o.y});
+  const it2={...it};if(it.px!==undefined){it2.px=W-it.px;it2.py=L-it.py}
+  const s=humanShotCore({...m(p),team:0},it2,c0,teamOf(0).map(m));
+  s.tx=W-s.tx;s.ty=L-s.ty;return s;
+}
+function humanShotCore(p,it,c0,opps){
   let c=c0;
   const ax0=it.px!==undefined?it.px:p.x,ay0=it.py!==undefined?it.py:p.y;
-  const opps=[PL[2],PL[3]],nearNet=Math.abs(p.y-NET)<KITCH+2.8,stick=it.kind==='btn'?(it.ax||0):0;
+  const nearNet=Math.abs(p.y-NET)<KITCH+2.8,stick=it.kind==='btn'?(it.ax||0):0;
   const gapX=()=>Math.abs(stick)>.3?clamp(10+Math.sign(stick)*6.5,3,17):bestGapX(opps);
   const fromSwipe=it.kind==='swipe';
   let kind,pw=.5,note=null;
-  if(it.kind==='btn'){kind=it.shot;pw=kind==='smash'?.8:kind==='lob'?.6:kind==='slice'?.5:.56}
+  if(it.kind==='btn'){kind=it.shot;pw=clamp((kind==='smash'?.8:kind==='lob'?.6:kind==='slice'?.5:.56)+(it.charge||0)*.4,0,1)}
   else if(it.kind==='tap'){kind=c.high?'smash':S.hits===1?'drive':(c.low||nearNet)?'dink':'drive';pw=.5}
   else{
     pw=clamp((it.len-30)/165,0,1);
@@ -462,27 +538,28 @@ function humanShot(p,it,c0){
   // A committed overhead button gets a little height grace, since the swing was armed while the ball was still high.
   if(kind==='smash'&&!c.high&&!(it.kind==='btn'&&c.bn===0&&c.z>=2.9)){kind='drive';note='Too low for an overhead';pw=.5}
   const swX=dep=>{const fwd=Math.max(.3,-it.ay),dyT=Math.abs(ay0-(NET-dep));return clamp(ax0+it.ax/fwd*dyT*.85,1.2,18.8)};
+  const ch=it.kind==='btn'?(it.charge||0):0;  // hold-to-charge: more power and depth, less accuracy
   let depth,speed=0,tx,sig,apex=0;
   if(kind==='smash')c={...c,q:Math.max(c.q,.55)};
   if(kind==='lob'){
-    depth=fromSwipe?15+pw*5.5:17;speed=15;tx=fromSwipe?clamp(ax0+it.ax*12,1.8,18.2):gapX();
+    depth=fromSwipe?15+pw*5.5:17+ch*3.5;speed=15;tx=fromSwipe?clamp(ax0+it.ax*12,1.8,18.2):gapX();
     sig=(.4+1.9*pw*pw)*(.6+(1-c.q)*1.4);
   }else if(kind==='dink'){
-    depth=fromSwipe?2.2+clamp((it.len-22)/73,0,1)*3.4:3.6;tx=fromSwipe?swX(depth):gapX();
-    sig=.2+(1-c.q)*.4;
+    depth=fromSwipe?2.2+clamp((it.len-22)/73,0,1)*3.4:3.6+ch*2.6;tx=fromSwipe?swX(depth):gapX();
+    sig=.2+(1-c.q)*.4+ch*.25;
   }else if(kind==='drop'){
-    depth=fromSwipe?4:3.9;apex=7;tx=fromSwipe?swX(depth):gapX();sig=.3+(1-c.q)*.5;
+    depth=fromSwipe?4:3.9+ch*2.4;apex=7;tx=fromSwipe?swX(depth):gapX();sig=.3+(1-c.q)*.5+ch*.25;
   }else if(kind==='smash'){
-    depth=fromSwipe?Math.max(8,1.6+pw*19):10;speed=lerp(34,48,Math.max(pw,.6));tx=fromSwipe?swX(depth):gapX();
+    depth=fromSwipe?Math.max(8,1.6+pw*19):10+ch*5;speed=it.kind==='btn'?40+ch*10:lerp(34,48,Math.max(pw,.6));tx=fromSwipe?swX(depth):gapX();
     sig=(.4+1.9*pw*pw)*(.6+(1-c.q)*1.4)*1.2;
   }else if(kind==='slice'){
     // Backspin: flat and low, then skids and dies on the bounce so the receiver gets a low ball.
-    depth=11;speed=19;tx=fromSwipe?swX(depth):gapX();sig=.3+(1-c.q)*.7;
-    if(c.low&&S.hits>1){speed=15;depth=9.5}
+    depth=11+ch*4;speed=19+ch*7;tx=fromSwipe?swX(depth):gapX();sig=.3+(1-c.q)*.7+ch*.4;
+    if(c.low&&S.hits>1){speed=15+ch*3;depth=9.5+ch*3}
   }else{
     depth=1.6+pw*19;speed=lerp(9,42,Math.pow(pw,.9));tx=fromSwipe?swX(depth):gapX();
     if(it.kind==='tap'){speed=S.hits<=2?20:26;depth=S.hits<=2?15:11.5}
-    if(it.kind==='btn'){speed=28;depth=13}
+    if(it.kind==='btn'){speed=28+ch*14;depth=13+ch*5}
     sig=(.4+1.9*pw*pw)*(.6+(1-c.q)*1.4)*(it.kind==='tap'?1.15:1);
     // A low ball can't be driven: it can only be reset softly.
     if(c.low&&S.hits>1){speed=Math.min(speed,16);depth=Math.min(depth,11);note='Low ball: dink or drop'}
@@ -514,17 +591,17 @@ function aiShot(p,c){
   return r<.55?dink():drive(8,18);
 }
 
-function serveTarget(it){
+function serveTarget(it,team){
   const bx=S.sbx,c=(bx[0]+bx[1])/2,BTN={dink:.3,drop:.35,slice:.5,drive:.7,smash:.8,lob:.95};
-  const pw=it.kind==='tap'?.45:it.kind==='btn'?(BTN[it.shot]||.45):clamp((it.len-30)/165,0,1);
-  const lean=it.kind==='tap'?0:it.kind==='btn'?(it.ax||0)*4:it.ax*5.5;
+  const pw=it.kind==='tap'?.45:it.kind==='btn'?(clamp((BTN[it.shot]||.45)+(it.charge||0)*.4,0,1)):clamp((it.len-30)/165,0,1);
+  const lean=(it.kind==='tap'?0:it.kind==='btn'?(it.ax||0)*4:it.ax*5.5)*(team===1?-1:1);  // stick/swipe are in the server's own screen view
   return{pw,depth:8.8+pw*11.4,tx:clamp(c+lean,bx[0]+1.3,bx[1]-1.3)};
 }
 function doServe(p,it){
   const side=p.team===0?-1:1,bx=S.sbx;
   let depth,tx,sig,speed;
   if(p.ctrl==='human'){
-    const a=serveTarget(it);
+    const a=serveTarget(it,p.team);
     depth=a.depth;tx=a.tx;speed=17+a.pw*12;sig=.3+a.pw*.45;
   }else{
     const D=DIFF[diff];depth=rnd(9,19.5);speed=rnd(18,28);tx=rnd(bx[0]+1.6,bx[1]-1.6);sig=.3+D.err*.4;
@@ -560,14 +637,15 @@ function predict(team){
 }
 // Where a high incoming ball comes down into smash height (null when it can't be smashed: too low, or too close to the net to reach from outside the kitchen).
 function smashSpot(){
-  if(!B.live||B.lastTeam!==1||B.bounces!==0||S.hits<3||S.pending)return null;
+  const T=VT(),sd=T===0?1:-1;
+  if(!B.live||B.lastTeam!==1-T||B.bounces!==0||S.hits<3||S.pending)return null;
   const s={x:B.x,y:B.y,z:B.z,vx:B.vx,vy:B.vy,vz:B.vz},dt=1/30;
   for(let i=0;i<90;i++){
     const py=s.y;s.vz-=G*dt;s.x+=s.vx*dt;s.y+=s.vy*dt;s.z+=s.vz*dt;
     if((py-NET)*(s.y-NET)<0&&s.z<NET_H)return null;
     if(s.z<=0)return null;
-    if(s.y>NET&&s.vz<0&&s.z<=HIGH+.5){
-      if(s.z<HIGH-.4||s.y<NET+KITCH-3||s.x<-1||s.x>W+1||s.y>L+1)return null;
+    if((s.y-NET)*sd>0&&s.vz<0&&s.z<=HIGH+.5){
+      if(s.z<HIGH-.4||Math.abs(s.y-NET)<KITCH-3||s.x<-1||s.x>W+1||s.y>L+1)return null;
       return{x:s.x,y:s.y,t:i*dt};
     }
   }
@@ -582,7 +660,7 @@ function chooser(team){
   for(const p of teamOf(team)){
     let d=Math.hypot(pr.x-p.x,pr.y-p.y);
     if(p.ctrl==='human')d-=3.5;
-    else if(p.team===0){const hm=PL[0],mid=(hm.x+p.x)/2;if((pr.x<mid)===(hm.x<mid))d+=3}
+    else{const hm=teamOf(p.team).find(o=>o!==p&&o.ctrl==='human');if(hm){const mid=(hm.x+p.x)/2;if((pr.x<mid)===(hm.x<mid))d+=3}}
     if(d<bd){bd=d;best=p}
   }
   return best;
@@ -631,6 +709,10 @@ function aiUpdate(p,dt){
 
 // ---------- input ----------
 const IN={mx:0,my:0,joy:null,swp:null,q:null,keys:{}};
+// Online players' inputs (slots 1-3), filled from the network on the host's phone.
+const mkIn=()=>({mx:0,my:0,q:null,keys:{},qid:0,seq:0,last:0});
+const RINS=[null,mkIn(),mkIn(),mkIn()];
+PL[0].inp=IN;
 function relPos(e){const r=app.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top,w:r.width}}
 function playing(){return(S.phase==='serve'||S.phase==='rally'||S.phase==='point')&&!S.paused}
 app.addEventListener('pointerdown',e=>{
@@ -675,27 +757,49 @@ app.addEventListener('pointercancel',endPtr);
 const SHOTS=['dink','drop','slice','drive','lob','smash'];
 // An overhead needs a high ball that hasn't bounced, and your feet out of the kitchen.
 // Same test as the star: the ball must come down at smash height outside the kitchen (a high ball over the kitchen has to bounce first).
-function smashReady(){return !inKitchen(PL[0])&&smashSpot()!==null}
-function pressShot(s){
-  if(!(S.phase==='serve'||S.phase==='rally')||S.paused)return;
+function smashReady(){return !inKitchen(PL[ME])&&smashSpot()!==null}
+function pressShot(s,charge){
+  if(!(S.phase==='serve'||S.phase==='rally')||S.paused)return false;
   initAudio();
   if(S.phase==='rally'&&s==='smash'&&!smashReady()){
-    toast(inKitchen(PL[0])&&B.bounces===0&&B.z>=3.4?'Step out of the kitchen first':B.bounces===0&&B.z>=3.4?'Let it bounce in the kitchen':'No smash on this ball',.9);return;
+    const msg=inKitchen(PL[ME])&&B.bounces===0&&B.z>=3.4?'Step out of the kitchen first':B.bounces===0&&B.z>=3.4?'':'No smash on this ball';
+    if(msg)toast(msg,.9);return false;
   }
-  IN.q={kind:'btn',shot:s,ax:IN.mx,ay:IN.my,len:0};
+  IN.q={kind:'btn',shot:s,ax:IN.mx,ay:IN.my,len:0,charge:clamp(charge||0,0,1)};return true;
+}
+// Hold a shot button to charge power: the shot fires on release (a quick tap is a normal shot).
+const CHARGE_T=.6,CHARGE_MAX=.85;
+const HOLD={shot:null,t0:0};
+function holdCharge(){return HOLD.shot?clamp((performance.now()-HOLD.t0)/1000/CHARGE_T,0,1):0}
+function startHold(s){
+  if(HOLD.shot)releaseHold();
+  if(!(S.phase==='serve'||S.phase==='rally')||S.paused)return false;
+  if(S.phase==='rally'&&s==='smash'&&!smashReady()){pressShot(s);return false}  // refuses with its message
+  initAudio();HOLD.shot=s;HOLD.t0=performance.now();return true;
+}
+function releaseHold(){
+  if(!HOLD.shot)return;
+  const s=HOLD.shot,ch=holdCharge();HOLD.shot=null;
+  pressShot(s,ch);
 }
 window.addEventListener('keydown',e=>{
-  if(e.key>='1'&&e.key<='6'&&!e.repeat)pressShot(SHOTS[+e.key-1]);
+  if(e.key>='1'&&e.key<='6'&&!e.repeat)startHold(SHOTS[+e.key-1]);
   IN.keys[e.key.toLowerCase()]=1;
   if(e.key===' '&&playing()){initAudio();IN.q={kind:'tap',ax:0,ay:-1,len:0};e.preventDefault()}
 });
-window.addEventListener('keyup',e=>{IN.keys[e.key.toLowerCase()]=0});
+window.addEventListener('keyup',e=>{IN.keys[e.key.toLowerCase()]=0;if(e.key>='1'&&e.key<='6'&&HOLD.shot===SHOTS[+e.key-1])releaseHold()});
 
-function humanMove(p,dt){
-  let mx=IN.mx,my=IN.my;
-  const k=IN.keys;
+// Stick direction from the joystick, or WASD/arrow keys when held.
+function inputVec(I){
+  let mx=I.mx,my=I.my;
+  const k=I.keys||{};
   const kx=(k.d||k.arrowright?1:0)-(k.a||k.arrowleft?1:0),ky=(k.s||k.arrowdown?1:0)-(k.w||k.arrowup?1:0);
   if(kx||ky){const d=Math.hypot(kx,ky);mx=kx/d;my=ky/d}
+  return[mx,my];
+}
+function humanMove(p,dt){
+  let [mx,my]=inputVec(p.inp||IN);
+  if(FLIP&&(p.inp||IN)===IN){mx=-mx;my=-my}  // this screen is turned around
   p.maxSp=17.25;
   const frozen=S.phase==='serve'&&p===S.server;
   const sp=17.25;
@@ -712,14 +816,16 @@ function update(dt){
     const f=FX[i];f.life-=dt;f.x+=f.vx*dt;f.y+=f.vy*dt;f.vz-=G*dt;f.z=Math.max(0,f.z+f.vz*dt);
     if(f.life<=0)FX.splice(i,1);
   }
-  if(S.phase==='menu'||S.phase==='over')return;
+  if(S.phase==='menu'||S.phase==='over'){HOLD.shot=null;return}
   S.timer+=dt;
   if(S.phase==='serve'){
     const sv=S.server;
     B.x=sv.x;B.y=sv.y+(sv.team===0?-.9:.9);B.z=3;
+    for(const p of PL)if(p.ctrl==='human'&&p!==sv&&p.inp)p.inp.q=null;
     if(sv.ctrl==='human'){
-      if(IN.q){doServe(sv,IN.q);IN.q=null;learned=true}
-    }else{IN.q=null;if(S.timer>1.1)doServe(sv,null)}
+      const I=sv.inp||IN;
+      if(I.q){doServe(sv,I.q);I.q=null;if(I===IN)learned=true}
+    }else if(S.timer>1.1)doServe(sv,null)
   }
   if(S.phase==='rally'){
     S.flight+=dt;
@@ -729,8 +835,8 @@ function update(dt){
       for(let t=0;t<2;t++)if(B.lastTeam!==t)predCache[t]=predict(t);
     }
     spotCache=smashSpot();
-    if(IN.q){startSwing(PL[0],IN.q);IN.q=null;learned=true}
-  }else{IN.q=S.phase==='serve'?IN.q:null;spotCache=null}
+    for(const p of PL)if(p.ctrl==='human'&&p.inp&&p.inp.q){startSwing(p,p.inp.q);if(p.inp===IN)learned=true;p.inp.q=null}
+  }else{if(S.phase!=='serve'){IN.q=null;for(const r of RINS)if(r)r.q=null}spotCache=null}
   for(const p of PL){
     if(p.ctrl==='human')humanMove(p,dt);else aiUpdate(p,dt);
     p.x+=p.vx*dt;p.y+=p.vy*dt;p.bob+=dt*Math.hypot(p.vx,p.vy)*.5;
@@ -766,18 +872,18 @@ function cline(x1,y1,x2,y2){ctx.beginPath();ctx.moveTo(wx(x1),wy(y1));ctx.lineTo
 
 function drawCourt(){
   ctx.fillStyle='#0f1f1e';ctx.fillRect(0,0,CW,CH);
-  ctx.fillStyle='#1c4a3a';rrect(wx(-3.2),wy(-3.2),(W+6.4)*SC,(L+6.4)*SC,14);ctx.fill();
-  ctx.fillStyle='#2b6f93';ctx.fillRect(wx(0),wy(0),W*SC,L*SC);
-  ctx.fillStyle='#3a86ab';ctx.fillRect(wx(0),wy(NET-KITCH),W*SC,KITCH*2*SC);
+  ctx.fillStyle='#1c4a3a';rrect(...wrect(-3.2,-3.2,W+3.2,L+3.2),14);ctx.fill();
+  ctx.fillStyle='#2b6f93';ctx.fillRect(...wrect(0,0,W,L));
+  ctx.fillStyle='#3a86ab';ctx.fillRect(...wrect(0,NET-KITCH,W,NET+KITCH));
   ctx.strokeStyle='rgba(255,255,255,.92)';ctx.lineWidth=Math.max(1.5,SC*.14);
-  ctx.strokeRect(wx(0),wy(0),W*SC,L*SC);
+  ctx.strokeRect(...wrect(0,0,W,L));
   cline(0,NET-KITCH,W,NET-KITCH);cline(0,NET+KITCH,W,NET+KITCH);
   cline(10,0,10,NET-KITCH);cline(10,NET+KITCH,10,L);
   ctx.fillStyle='rgba(255,255,255,.2)';ctx.font='400 '+SC*1+'px '+FONT_D;ctx.textAlign='center';
   ctx.fillText('KITCHEN',wx(10),wy(NET-KITCH/2)+SC*.35);ctx.fillText('KITCHEN',wx(10),wy(NET+KITCH/2)+SC*.35);
 }
 function drawNet(){
-  const x1=wx(-.7),x2=wx(W+.7),yb=wy(NET),yt=yb-lift(NET_H);
+  const x1=Math.min(wx(-.7),wx(W+.7)),x2=Math.max(wx(-.7),wx(W+.7)),yb=wy(NET),yt=yb-lift(NET_H);
   ctx.fillStyle='rgba(10,20,22,.45)';ctx.fillRect(x1,yt,x2-x1,yb-yt);
   ctx.strokeStyle='rgba(255,255,255,.22)';ctx.lineWidth=1;
   for(let x=x1;x<=x2;x+=SC*.7){ctx.beginPath();ctx.moveTo(x,yt);ctx.lineTo(x,yb);ctx.stroke()}
@@ -788,9 +894,10 @@ function drawNet(){
 function drawPlayer(p){
   const x=wx(p.x),y=wy(p.y),s=SC,mv=Math.hypot(p.vx,p.vy)>1.2,bob=mv?Math.sin(p.bob*5)*s*.12:0;
   ctx.fillStyle='rgba(0,0,0,.3)';ell(x,y,s*1.15,s*.5);
-  if(p.team===0){
+  const mine=p.team===VT();
+  if(mine){
     const red=inKitchen(p)&&((B.live&&B.lastTeam!==p.team&&B.bounces===0)||p.mom>0);  // red = a volley from here would be a fault
-    ctx.strokeStyle=red?'#ff5a4a':(p.ctrl==='human'?'#d8ff3e':'rgba(255,178,62,.75)');ctx.lineWidth=p.ctrl==='human'?2:1.5;
+    ctx.strokeStyle=red?'#ff5a4a':(p===PL[ME]?'#d8ff3e':'rgba(255,178,62,.75)');ctx.lineWidth=p===PL[ME]?2:1.5;
     ctx.beginPath();ctx.ellipse(x,y,s*1.55,s*.72,0,0,6.2832);ctx.stroke();
   }
   const legs=mv?Math.sin(p.bob*5)*s*.3:0;
@@ -800,20 +907,28 @@ function drawPlayer(p){
   const hy=y-s*3.15+bob;
   ctx.fillStyle='#f0c7a0';ctx.beginPath();ctx.arc(x,hy,s*.78,0,6.2832);ctx.fill();
   ctx.fillStyle='#2a1d1a';ctx.beginPath();
-  if(p.team===0)ctx.arc(x,hy,s*.8,0,6.2832);else ctx.arc(x,hy,s*.8,3.1416,6.2832);
+  if(mine)ctx.arc(x,hy,s*.8,0,6.2832);else ctx.arc(x,hy,s*.8,3.1416,6.2832);
   ctx.fill();
   ctx.fillStyle=p.col;ctx.fillRect(x-s*.8,hy-s*.12,s*1.6,s*.24);
-  if(p.team===1){ctx.fillStyle='#2a1d1a';ctx.beginPath();ctx.arc(x-s*.28,hy+s*.22,s*.09,0,6.28);ctx.arc(x+s*.28,hy+s*.22,s*.09,0,6.28);ctx.fill()}
+  if(!mine){ctx.fillStyle='#2a1d1a';ctx.beginPath();ctx.arc(x-s*.28,hy+s*.22,s*.09,0,6.28);ctx.arc(x+s*.28,hy+s*.22,s*.09,0,6.28);ctx.fill()}
   // paddle
   const sw=p.swing>0?p.sw:-1,ang=sw<0?-.55:lerp(-1.5,1.1,Math.min(1,sw*1.25));
-  ctx.save();ctx.translate(x+s*1.05,by-s*.1);ctx.rotate(ang);
-  ctx.strokeStyle='#2a1d1a';ctx.lineWidth=Math.max(2,s*.2);ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(0,-s*.75);ctx.stroke();
-  ctx.fillStyle='#f4f1e8';ctx.strokeStyle=p.col;ctx.lineWidth=Math.max(2,s*.2);
-  ctx.beginPath();ctx.ellipse(0,-s*1.45,s*.62,s*.82,0,0,6.2832);ctx.fill();ctx.stroke();
+  // paddle in the right hand, tilted outward at rest so it clears the face, with a thin black outline so it reads against the body
+  ctx.save();ctx.translate(x+s*1.05,by-s*.1);ctx.rotate(sw<0?.4:ang);
+  const lw=Math.max(2,s*.2),ol=Math.max(1,s*.09);
+  ctx.lineCap='butt';
+  ctx.strokeStyle='#0a0f0e';ctx.lineWidth=lw+ol*2;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(0,-s*.75);ctx.stroke();
+  ctx.strokeStyle='#2a1d1a';ctx.lineWidth=lw;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(0,-s*.75);ctx.stroke();
+  ctx.beginPath();ctx.ellipse(0,-s*1.45,s*.62,s*.82,0,0,6.2832);
+  ctx.strokeStyle='#0a0f0e';ctx.lineWidth=lw+ol*2;ctx.stroke();
+  ctx.fillStyle='#f4f1e8';ctx.fill();
+  ctx.strokeStyle=p.col;ctx.lineWidth=lw;ctx.stroke();
+  // thin inner edge line too, so the face of the paddle stays crisp
+  ctx.beginPath();ctx.ellipse(0,-s*1.45,s*.62-lw/2,s*.82-lw/2,0,0,6.2832);ctx.strokeStyle='#0a0f0e';ctx.lineWidth=Math.max(1,ol*.8);ctx.stroke();
   ctx.restore();
-  if(p.team===0){
+  if(mine||(MP.role&&p.ctrl==='human')){
     ctx.font='400 '+Math.max(9,s*.8)+'px '+FONT_D;ctx.textAlign='center';
-    ctx.fillStyle=p.ctrl==='human'?'#d8ff3e':'rgba(255,255,255,.7)';ctx.fillText(p.name,x,hy-s*1.25);
+    ctx.fillStyle=p===PL[ME]?'#d8ff3e':'rgba(255,255,255,.7)';ctx.fillText(p===PL[ME]?'YOU':p.name,x,hy-s*1.25);
   }
 }
 function drawBall(){
@@ -831,15 +946,21 @@ function drawBall(){
   ctx.beginPath();ctx.arc(bx,by,r*.14,0,6.28);ctx.fill();
 }
 function aimPreview(it){
-  if(S.phase==='serve'){const a=serveTarget(it);return{tx:a.tx,ty:NET-a.depth,label:'SERVE'}}
-  const p=PL[0],pw=clamp((it.len-30)/165,0,1);
+  const T=VT();
+  if(S.phase==='serve'){const a=serveTarget(it,T);return{tx:a.tx,ty:T===0?NET-a.depth:NET+a.depth,label:'SERVE'}}
+  if(T===1){const r=aimPreview0({x:W-PL[ME].x,y:L-PL[ME].y},it);r.tx=W-r.tx;r.ty=L-r.ty;return r}
+  return aimPreview0(PL[ME],it);
+}
+function aimPreview0(p,it){
+  const pw=clamp((it.len-30)/165,0,1);
   if(it.ay>.4)return{tx:clamp(p.x+it.ax*12,1.8,18.2),ty:NET-(15+pw*5.5),label:'LOB'};
   const depth=1.6+pw*19,fwd=Math.max(.3,-it.ay),dyT=Math.abs(p.y-(NET-depth));
   return{tx:clamp(p.x+it.ax/fwd*dyT*.85,1.2,18.8),ty:NET-depth,label:pw<.22?'DINK':pw<.72?'DRIVE':'POWER'};
 }
 function drawControls(){
   const pulse=.5+.5*Math.sin(performance.now()/260);
-  if(S.phase==='rally'&&spotCache&&B.lastTeam===1){
+  const T=VT();
+  if(S.phase==='rally'&&spotCache&&B.lastTeam===1-T){
     // The ball will come down in smash range here: a star instead of the plain landing ring.
     const sx=wx(spotCache.x),sy=wy(spotCache.y),R=SC*1.6*(1+.12*pulse);
     ctx.save();ctx.translate(sx,sy);ctx.scale(1,.62);
@@ -849,8 +970,8 @@ function drawControls(){
     for(let i=0;i<10;i++){const a=-1.5708+i*.6283,r=i%2?R*.45:R;ctx[i?'lineTo':'moveTo'](Math.cos(a)*r,Math.sin(a)*r)}
     ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();
     ctx.textAlign='center';ctx.fillStyle='#ffd0b8';ctx.font='400 11px '+FONT_D;ctx.fillText('SMASH',sx,sy-R*.62-6);
-  }else if(S.phase==='rally'&&predCache[0]&&!predCache[0].dead&&B.lastTeam===1){
-    const pr=predCache[0];ctx.strokeStyle='rgba(216,255,62,'+(.35+.3*pulse)+')';ctx.lineWidth=2;
+  }else if(S.phase==='rally'&&predCache[T]&&!predCache[T].dead&&B.lastTeam===1-T){
+    const pr=predCache[T];ctx.strokeStyle='rgba(216,255,62,'+(.35+.3*pulse)+')';ctx.lineWidth=2;
     ctx.beginPath();ctx.ellipse(wx(pr.x),wy(pr.y),SC*1.2,SC*.6,0,0,6.2832);ctx.stroke();
   }
   if(IN.joy){
@@ -875,7 +996,7 @@ function drawControls(){
   if(!learned&&!IN.joy&&!IN.swp&&playing()){
     ctx.font='400 12px '+FONT_D;ctx.textAlign='center';ctx.fillStyle='rgba(243,247,238,'+(.45+.3*pulse)+')';
     if(LAND){const top=Math.max(8,CH/2-70);ctx.fillText('DRAG TO MOVE',OX/2-6,top+150);ctx.fillText('SWIPE OR TAP',(OX+W*SC+CW-98)/2+4,top+90)}
-    else{ctx.fillText('DRAG TO MOVE',CW*.27,wy(NET+10));ctx.fillText('SWIPE OR TAP',CW*.7,wy(NET+10))}
+    else{const hy=wy(NET+(FLIP?-10:10));ctx.fillText('DRAG TO MOVE',CW*.27,hy);ctx.fillText('SWIPE OR TAP',CW*.7,hy)}
   }
 }
 function sideCard(x,y,w,h,label,score,col,serving){
@@ -886,17 +1007,17 @@ function sideCard(x,y,w,h,label,score,col,serving){
 }
 function drawHUD(){
   if(LAND){
-    const st=S.serveTeam,cw=Math.min(118,OX-14),cx=OX-cw-10,top=Math.max(8,CH/2-70);
-    sideCard(cx,top,cw,56,'YOU+PAL',S.score[0],'#ffb23e',st===0);
+    const st=S.serveTeam,t=VT(),cw=Math.min(118,OX-14),cx=OX-cw-10,top=Math.max(8,CH/2-70);
+    sideCard(cx,top,cw,56,'YOU+PAL',S.score[t],'#ffb23e',st===t);
     // call-out under it: serving score, server number
     ctx.fillStyle='rgba(22,48,45,.9)';rrect(cx,top+64,cw,54,12);ctx.fill();ctx.strokeStyle='#2c524c';ctx.lineWidth=1;ctx.stroke();
     ctx.textAlign='center';ctx.fillStyle='#9db3a8';ctx.font='500 10px '+FONT_B;ctx.fillText('SERVE',cx+cw/2,top+81);
     ctx.fillStyle='#d8ff3e';ctx.font='400 20px '+FONT_D;ctx.fillText(S.score[st]+'-'+S.score[1-st]+'-'+S.serveNum,cx+cw/2,top+106);
     const rx=OX+W*SC+10,rw=Math.min(118,CW-rx-8);
-    sideCard(rx,Math.max(8,top),rw,56,'RIVALS',S.score[1],'#a99cff',st===1);
+    sideCard(rx,Math.max(8,top),rw,56,'RIVALS',S.score[1-t],'#a99cff',st!==t);
     return;
   }
-  const w=CW-148,y=8,h=48,st=S.serveTeam;
+  const w=CW-148,y=8,h=48,st=S.serveTeam,t=VT();
   ctx.fillStyle='rgba(22,48,45,.9)';rrect(0,y,w,h,12);ctx.fill();
   ctx.strokeStyle='#2c524c';ctx.lineWidth=1;ctx.stroke();
   const blk=(label,score,cx,col,serving)=>{
@@ -904,19 +1025,19 @@ function drawHUD(){
     ctx.fillStyle='#f3f7ee';ctx.font='400 26px '+FONT_D;ctx.fillText(String(score),cx,y+42);
     if(serving){ctx.fillStyle='#d8ff3e';ctx.beginPath();ctx.arc(cx+ctx.measureText(String(score)).width/2+9,y+34,4,0,6.28);ctx.fill()}
   };
-  blk('YOU+PAL',S.score[0],w*.2,'#ffb23e',st===0);
-  blk('RIVALS',S.score[1],w*.8,'#a99cff',st===1);
+  blk('YOU+PAL',S.score[t],w*.2,'#ffb23e',st===t);
+  blk('RIVALS',S.score[1-t],w*.8,'#a99cff',st!==t);
   ctx.textAlign='center';ctx.fillStyle='#9db3a8';ctx.font='500 10px '+FONT_B;ctx.fillText('SERVE',w/2,y+17);
   ctx.fillStyle='#d8ff3e';ctx.font='400 20px '+FONT_D;
   ctx.fillText(S.score[st]+'-'+S.score[1-st]+'-'+S.serveNum,w/2,y+40);
 }
 function drawOverlays(){
   if(S.phase==='serve'){
-    const hum=S.server.ctrl==='human',pulse=.55+.45*Math.sin(performance.now()/300),py=wy(NET+1.1),pw=LAND?W*SC+8:Math.min(300,CW*.86),f1=LAND?11:15,f2=LAND?10:12;
+    const hum=S.server===PL[ME],pulse=.55+.45*Math.sin(performance.now()/300),py=wy(NET+1.1),pw=LAND?W*SC+8:Math.min(300,CW*.86),f1=LAND?11:15,f2=LAND?10:12;
     ctx.fillStyle='rgba(15,31,30,.82)';rrect(CW/2-pw/2,py,pw,hum?58:36,14);ctx.fill();
     ctx.textAlign='center';ctx.font='400 '+f1+'px '+FONT_D;
     ctx.fillStyle='rgba(216,255,62,'+(hum?pulse:.9)+')';
-    ctx.fillText(hum?'SWIPE OR TAP TO SERVE':(S.server.team===0?'PARTNER SERVES':'RIVALS SERVE'),CW/2,py+(hum?24:23));
+    ctx.fillText(hum?'SWIPE OR TAP TO SERVE':(S.server.team===VT()?'PARTNER SERVES':'RIVALS SERVE'),CW/2,py+(hum?24:23));
     if(hum){ctx.fillStyle='rgba(243,247,238,.75)';ctx.font='500 '+f2+'px '+FONT_B;ctx.fillText(LAND?'Diagonal, past the kitchen':'Land it diagonally, past the kitchen',CW/2,py+44)}
   }
   if(S.toastT>0&&S.phase==='rally'){
@@ -925,7 +1046,7 @@ function drawOverlays(){
     ctx.fillStyle='#ffb23e';ctx.fillText(S.toast,CW/2,LAND?29:97);
   }
   if(S.phase==='point'&&S.banner){
-    const b=S.banner;ctx.textAlign='center';
+    const you=S.banner.w===VT(),b={title:you?'Point you':'Point rivals',sub:S.banner.sub,col:you?'#d8ff3e':'#ff8f7a'};ctx.textAlign='center';
     ctx.fillStyle='rgba(15,31,30,.9)';rrect(CW/2-CW*.4,CH*.4-12,CW*.8,92,16);ctx.fill();
     ctx.fillStyle=b.col;ctx.font='400 28px '+FONT_D;ctx.fillText(b.title.toUpperCase(),CW/2,CH*.4+32);
     ctx.fillStyle='#f3f7ee';ctx.font='500 14px '+FONT_B;ctx.fillText(b.sub,CW/2,CH*.4+62);
@@ -938,14 +1059,15 @@ function draw(){
   drawCourt();
   if(S.phase==='serve'&&S.sbx){
     const x0=S.sbx[0],x1=S.sbx[1],y0=S.sby[0],y1=S.sby[1];
-    ctx.fillStyle='rgba(216,255,62,.16)';ctx.fillRect(wx(x0),wy(y0),(x1-x0)*SC,(y1-y0)*SC);
+    const R=wrect(x0,y0,x1,y1);
+    ctx.fillStyle='rgba(216,255,62,.16)';ctx.fillRect(...R);
     ctx.strokeStyle='rgba(216,255,62,.9)';ctx.lineWidth=2;ctx.setLineDash([7,5]);
-    ctx.strokeRect(wx(x0)+1,wy(y0)+1,(x1-x0)*SC-2,(y1-y0)*SC-2);ctx.setLineDash([]);
+    ctx.strokeRect(R[0]+1,R[1]+1,R[2]-2,R[3]-2);ctx.setLineDash([]);
     ctx.fillStyle='rgba(216,255,62,.85)';ctx.font='400 '+Math.max(11,SC*.95)+'px '+FONT_D;ctx.textAlign='center';
-    ctx.fillText(S.server.ctrl==='human'?'SERVE HERE':'SERVICE BOX',wx((x0+x1)/2),wy((y0+y1)/2)+SC*.3);
+    ctx.fillText(S.server===PL[ME]?'SERVE HERE':'SERVICE BOX',wx((x0+x1)/2),wy((y0+y1)/2)+SC*.3);
   }
-  const list=PL.map(p=>({y:p.y,f:()=>drawPlayer(p)}));
-  list.push({y:NET,f:drawNet});
+  const list=PL.map(p=>({y:wy(p.y),f:()=>drawPlayer(p)}));
+  list.push({y:wy(NET),f:drawNet});
   list.sort((a,b)=>a.y-b.y).forEach(o=>o.f());
   drawBall();
   for(const f of FX){ctx.fillStyle=f.col;ctx.globalAlpha=Math.max(0,f.life*3);ctx.beginPath();ctx.arc(wx(f.x),wy(f.y)-lift(f.z),2.2,0,6.28);ctx.fill()}
@@ -959,19 +1081,22 @@ let wake=null;
 async function keepAwake(){try{if(navigator.wakeLock)wake=await navigator.wakeLock.request('screen')}catch(e){}}
 function setPaused(v){
   if(S.phase==='menu'||S.phase==='over')return;
+  if(MP.role==='guest'){netSend({t:'pause',v:!!v});return}  // the host's phone owns the game clock
   S.paused=v;$('mPause').hidden=!v;if(v)stopMusic();else startMusic();IN.joy=null;IN.swp=null;IN.mx=IN.my=0;IN.q=null;
 }
 function startGame(){
   S.score=[0,0];S.serveTeam=0;S.serveNum=2;S.serverIdx=0;S.over=false;S.paused=false;learned=false;
-  ['mStart','mPause','mOver'].forEach(i=>$(i).hidden=true);
+  ['mStart','mPause','mOver','mNet'].forEach(i=>$(i).hidden=true);
   setupServe();keepAwake();initAudio();
 }
 function toMenu(){
+  if(MP.role==='guest'){netClose();S.phase='menu';S.paused=false;stopMusic();netShow('choose','You left the game.');return}
   stopMusic();S.phase='menu';S.paused=false;['mPause','mOver'].forEach(i=>$(i).hidden=true);$('mStart').hidden=false;
   S.score=[0,0];S.serveTeam=0;S.serveNum=2;S.serverIdx=0;setupServe();S.phase='menu';
+  if(MP.role==='host')hostLobbyMsg();
 }
 document.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>{
-  diff=c.dataset.d;document.querySelectorAll('.chip').forEach(o=>o.setAttribute('aria-pressed',String(o===c)));
+  diff=c.dataset.d;document.querySelectorAll('.chip').forEach(o=>o.setAttribute('aria-pressed',String(o.dataset.d===diff)));
 }));
 $('bPlay').onclick=startGame;$('bAgain').onclick=startGame;$('bMenu').onclick=toMenu;
 $('bPause').onclick=()=>setPaused(!S.paused);$('bResume').onclick=()=>setPaused(false);$('bQuit').onclick=toMenu;
@@ -979,13 +1104,23 @@ const btnEls={};document.querySelectorAll('.shot').forEach(b=>{
   btnEls[b.dataset.s]=b;
   b.addEventListener('pointerdown',e=>{
     e.preventDefault();e.stopPropagation();
-    pressShot(b.dataset.s);b.classList.add('hit');setTimeout(()=>b.classList.remove('hit'),130);
+    try{b.setPointerCapture(e.pointerId)}catch(_){}
+    if(startHold(b.dataset.s))b.classList.add('charging');
+    else{b.classList.add('hit');setTimeout(()=>b.classList.remove('hit'),130)}
   });
+  const rel=e=>{e.preventDefault();e.stopPropagation();if(HOLD.shot===b.dataset.s){releaseHold();b.classList.remove('charging','full');b.style.setProperty('--ch','0');b.classList.add('hit');setTimeout(()=>b.classList.remove('hit'),130)}};
+  b.addEventListener('pointerup',rel);b.addEventListener('pointercancel',rel);
+  b.addEventListener('contextmenu',e=>e.preventDefault());
 });
 let btnKey='';
 function updateButtons(){
+  if(HOLD.shot){
+    const el=btnEls[HOLD.shot],ch=holdCharge();
+    if(el){el.style.setProperty('--ch',String(ch));el.classList.toggle('full',ch>=1)}
+    if((performance.now()-HOLD.t0)/1000>CHARGE_MAX){const s=HOLD.shot;releaseHold();if(btnEls[s]){btnEls[s].classList.remove('charging','full');btnEls[s].style.setProperty('--ch','0')}}
+  }
   const act=S.phase==='rally',sm=act&&smashReady();
-  const lowIn=act&&B.live&&B.lastTeam===1&&B.bounces>0&&B.z<1.4;
+  const lowIn=act&&B.live&&B.lastTeam===1-VT()&&B.bounces>0&&B.z<1.4;
   const key=[sm,lowIn,act].join();if(key===btnKey)return;btnKey=key;
   btnEls.smash.classList.toggle('ready',sm);btnEls.smash.classList.toggle('off',act&&!sm);
   btnEls.dink.classList.toggle('ready',lowIn);btnEls.drop.classList.toggle('ready',lowIn);
@@ -1007,11 +1142,334 @@ $('bMusic').style.opacity=musicOn?1:.45;$('bMusic').setAttribute('aria-pressed',
 document.addEventListener('visibilitychange',()=>{if(document.hidden)setPaused(true)});
 window.addEventListener('resize',()=>{resize();CL=cv.getBoundingClientRect().left-app.getBoundingClientRect().left;layoutShots()});
 
+
+// ---------- online play: phone-to-phone over WebRTC (PeerJS), up to 4 people ----------
+// The host's phone runs the whole game and is always P1. Up to three friends join with the room code and pick a free
+// spot: P2 (the host's partner) or P3/P4 (the rivals). Empty spots are played by the AI.
+// A joined phone sends its stick and shot presses, predicts its own movement so the stick feels instant, and draws
+// what the host sends back. Players on the rivals' side see the court turned around so their side is at the bottom.
+// Messages go over an unreliable channel, so every message carries full state and nothing breaks if one is lost.
+const MP={role:null,peer:null,code:'',ready:false,lastTx:0,ev:[],evId:0,snapN:0,
+  // host: slot -> connection (slot 0 is the host itself)
+  conns:[null,null,null,null],lastRx:[0,0,0,0],
+  // guest
+  conn:null,gLastRx:0,seen:-1,lastSnap:-1,qid:0,pendQ:null,seq:0,hist:[],cx:0,cy:0,srv:null,base:null,baseT:0,joinTimer:null,waitShown:false,lobbyKey:''};
+const PEERJS_URL='https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
+const CODE_CH='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const SLOT_NAME=['P1','P2','P3','P4'],AI_NAME=['YOU','PAL','RIVAL','RIVAL'];
+const r2=v=>Math.round(v*100)/100;
+
+function netOpts(){
+  // ?ps=host:port points at a private PeerServer (local testing). Default: the free PeerJS cloud broker and its STUN/TURN servers.
+  try{const m=/[?&]ps=([^&]+)/.exec(location.search);if(m){const a=decodeURIComponent(m[1]).split(':');return{host:a[0],port:+a[1]||9000,path:'/',secure:false,debug:0}}}catch(e){}
+  return{debug:0};
+}
+function loadPeer(){
+  return new Promise((res,rej)=>{
+    if(window.Peer)return res();
+    const s=document.createElement('script');s.src=PEERJS_URL;s.async=true;
+    s.onload=()=>window.Peer?res():rej(new Error('no Peer'));s.onerror=()=>rej(new Error('load failed'));
+    document.head.appendChild(s);
+  });
+}
+function netErr(err){
+  const t=err&&err.type;
+  if(t==='peer-unavailable')return'No room with that code. Check it and try again.';
+  if(t==='browser-incompatible')return'This browser can’t do online play. Try Chrome or Safari.';
+  if(t==='network'||t==='server-error'||t==='socket-error'||t==='socket-closed')return'Can’t reach the online service. Check your internet. (Online play works on the GitHub link, not inside the Claude preview.)';
+  return'Connection problem ('+(t||'unknown')+'). Try again.';
+}
+const humans=()=>MP.conns.filter(Boolean).length;
+
+// ---------- screens ----------
+function netShow(state,msg){
+  ['mStart','mOver','mPause'].forEach(i=>$(i).hidden=true);$('mNet').hidden=false;
+  $('nChoose').hidden=state!=='choose';$('nRoom').hidden=state!=='room';
+  if(state==='choose'){$('nMsg').textContent=msg||'Up to 4 players, each on their own phone. Empty spots are played by the AI.'}
+  else{
+    if(msg!==undefined)$('nStatus').textContent=msg;
+    const host=MP.role==='host';$('bNetStart').hidden=!host;$('nChips').hidden=!host;$('nGuestNote').hidden=host;
+    MP.lobbyKey='';renderLobby();
+  }
+}
+// Spot picker: P1 (host) and P2 on one team, P3 and P4 on the other. Joined players tap a free spot to move there.
+function renderLobby(){
+  const key=ME+'|'+PL.map(p=>p.ctrl+p.name).join(',');if(key===MP.lobbyKey)return;MP.lobbyKey=key;
+  const el=$('nSlots');el.textContent='';
+  [[0,1,'Team A'],[2,3,'Team B']].forEach(([a,b,label])=>{
+    const row=document.createElement('div');row.className='team';
+    const h=document.createElement('p');h.className='tlabel';h.textContent=label;row.appendChild(h);
+    for(const s of [a,b]){
+      const p=PL[s],bt=document.createElement('button'),hum=p.ctrl==='human',mine=s===ME;
+      bt.className='slot'+(mine?' me':hum?' taken':'');bt.type='button';
+      bt.innerHTML='<b></b><span></span>';
+      bt.querySelector('b').textContent=SLOT_NAME[s];
+      bt.querySelector('span').textContent=mine?'You':s===0?'Host':hum?'Friend':'AI · tap to take';
+      bt.disabled=mine||hum||MP.role!=='guest';
+      bt.onclick=()=>netSendHost({t:'pick',s});
+      row.appendChild(bt);
+    }
+    el.appendChild(row);
+  });
+}
+function netFail(msg){netClose();netShow('choose',msg)}
+function sendTo(c,m){try{if(c&&c.open)c.send(m)}catch(e){}}
+function netSendHost(m){sendTo(MP.conn,m)}
+function netSend(m){if(MP.role==='guest')sendTo(MP.conn,m)}
+
+function resetSlots(){
+  ME=0;FLIP=false;
+  PL.forEach((p,i)=>{p.ctrl=i===0?'human':'ai';p.inp=i===0?IN:null;p.name=AI_NAME[i]});
+  $('bAgain').hidden=false;$('bMenu').textContent='Change level';$('oWait').hidden=true;
+}
+function netClose(){
+  clearTimeout(MP.joinTimer);
+  const cs=MP.role==='host'?MP.conns.filter(Boolean):MP.conn?[MP.conn]:[];
+  for(const c of cs){sendTo(c,{t:'bye'});setTimeout(()=>{try{c.close()}catch(e){}},120)}
+  if(MP.peer){const p=MP.peer;setTimeout(()=>{try{p.destroy()}catch(e){}},200)}
+  Object.assign(MP,{role:null,peer:null,code:'',ready:false,ev:[],conns:[null,null,null,null],conn:null,seen:-1,lastSnap:-1,pendQ:null,hist:[],cx:0,cy:0,srv:null,base:null,waitShown:false});
+  resetSlots();
+}
+
+// ---------- hosting ----------
+async function netHost(){
+  initAudio();stopMusic();
+  netShow('choose','Opening a room…');
+  try{await loadPeer()}catch(e){return netFail('Couldn’t load online play. Check your internet. (It works on the GitHub link, not inside the Claude preview.)')}
+  netClose();MP.role='host';PL[0].name='P1';
+  const open=n=>{
+    const code=Array.from({length:4},()=>CODE_CH[Math.floor(Math.random()*CODE_CH.length)]).join('');
+    let peer;try{peer=new Peer('pkdbl-'+code,netOpts())}catch(e){return netFail(netErr({type:'browser-incompatible'}))}
+    MP.peer=peer;
+    peer.on('open',()=>{if(MP.peer!==peer)return;MP.code=code;MP.ready=true;$('nCodeShow').textContent=code;hostLobbyMsg()});
+    peer.on('error',err=>{
+      if(MP.peer!==peer)return;
+      if(err.type==='unavailable-id'&&n<5){try{peer.destroy()}catch(e){}open(n+1);return}
+      if(err.type==='peer-unavailable')return;
+      if(!MP.code)netFail(netErr(err));
+    });
+    peer.on('connection',c=>{
+      c.on('open',()=>{
+        const s=[1,2,3].find(i=>!MP.conns[i]);
+        if(!s){sendTo(c,{t:'full'});setTimeout(()=>{try{c.close()}catch(e){}},400);return}
+        hostSeat(c,s);
+      });
+      c.on('data',m=>{const s=MP.conns.indexOf(c);if(s>0&&m&&typeof m==='object'){MP.lastRx[s]=performance.now();hostRx(m,s)}});
+      c.on('close',()=>hostLost(c));c.on('error',()=>hostLost(c));
+    });
+    peer.on('disconnected',()=>{try{if(MP.peer===peer&&!peer.destroyed)peer.reconnect()}catch(e){}});  // lost the broker only; games in progress stay up
+  };
+  open(0);
+}
+function hostLobbyMsg(){
+  if(S.phase!=='menu'&&$('mNet').hidden)return;
+  const n=humans();
+  netShow('room',n===3?'Room full: 4 players. Start when ready.':n?n+' friend'+(n>1?'s':'')+' joined. Pick the AI level, then start. More can still join.':'Send this code to your friends (up to 3). Waiting for someone to join…');
+  $('bNetStart').disabled=!n;
+}
+function hostSeat(c,s){
+  MP.conns[s]=c;MP.lastRx[s]=performance.now();
+  const p=PL[s];p.ctrl='human';p.inp=RINS[s];p.name=SLOT_NAME[s];
+  Object.assign(RINS[s],{mx:0,my:0,q:null,qid:0,seq:0,last:performance.now()});
+  if(S.phase==='menu'||!$('mNet').hidden)hostLobbyMsg();else toast(SLOT_NAME[s]+' joined',1.5);
+}
+function hostFree(s){
+  MP.conns[s]=null;const p=PL[s];p.ctrl='ai';p.inp=null;p.name=AI_NAME[s];p.swing=0;p.hitDone=true;
+}
+function hostLost(c){
+  const s=MP.conns.indexOf(c);if(s<1)return;
+  hostFree(s);
+  if(S.phase==='menu'||!$('mNet').hidden)hostLobbyMsg();
+  else toast(SLOT_NAME[s]+' left. The AI takes over.',2.2);
+}
+function cleanQ(q){
+  if(!q||typeof q!=='object')return null;
+  const n=v=>Number.isFinite(+v)?+v:0;
+  if(q.kind==='btn'&&SHOTS.includes(q.shot))return{kind:'btn',shot:q.shot,ax:clamp(n(q.ax),-1,1),ay:clamp(n(q.ay),-1,1),len:0,charge:clamp(n(q.charge),0,1)};
+  if(q.kind==='tap')return{kind:'tap',ax:0,ay:-1,len:0};
+  if(q.kind==='swipe')return{kind:'swipe',ax:clamp(n(q.ax),-1,1),ay:clamp(n(q.ay),-1,1),len:clamp(n(q.len),0,400)};
+  return null;
+}
+function hostRx(m,s){
+  const R=RINS[s];
+  if(m.t==='i'){
+    if(!(m.seq>R.seq))return;  // stale or out of order
+    R.seq=m.seq;R.last=performance.now();
+    const mx=+m.mx||0,my=+m.my||0,d=Math.hypot(mx,my),k=d>1?1/d:1;
+    R.mx=clamp(mx*k,-1,1);R.my=clamp(my*k,-1,1);
+    if(m.qid>R.qid){R.qid=m.qid;const q=cleanQ(m.q);if(q&&(S.phase==='serve'||S.phase==='rally')&&!S.paused)R.q=q}
+  }else if(m.t==='pick'){
+    // move to another free spot, only between matches
+    const to=m.s|0;
+    if(S.phase!=='menu'||to<1||to>3||MP.conns[to])return;
+    const c=MP.conns[s];hostFree(s);hostSeat(c,to);MP.lastRx[to]=performance.now();
+  }else if(m.t==='pause'){if(S.phase!=='menu'&&S.phase!=='over')setPaused(!!m.v)}
+  else if(m.t==='bye')hostLost(MP.conns[s]);
+}
+function netEv(n,a,w){MP.ev.push({i:++MP.evId,n,a,w});if(MP.ev.length>24)MP.ev.shift()}
+// Sounds, toasts and buzzes for the joined phones. Called from toast() and pbuzz(); sfx calls are wrapped below.
+function netToast(t,s,who){
+  if(MP.role!=='host'||!humans())return;
+  const w=who?PL.indexOf(who):-1;
+  if(w!==0)netEv('toast',[t,s||1.1],w);
+}
+function netBuzz(p,ms){const w=PL.indexOf(p);if(MP.role==='host'&&w>0&&MP.conns[w])netEv('bz',ms,w)}
+for(const k of Object.keys(sfx)){const f=sfx[k];sfx[k]=(...a)=>{if(MP.role==='host'&&humans())netEv('sfx',k,-1);return f(...a)}}
+
+function netHostTick(){
+  if(MP.role!=='host'||!humans())return;
+  const now=performance.now();
+  for(let s=1;s<4;s++){
+    if(!MP.conns[s])continue;
+    if(now-RINS[s].last>1500){RINS[s].mx=RINS[s].my=0}       // that phone went quiet: stand still
+    if(now-MP.lastRx[s]>25000)hostLost(MP.conns[s]);
+  }
+  if(now-MP.lastTx<33)return;                                  // ~30 updates a second
+  MP.lastTx=now;
+  const snap={t:'s',n:++MP.snapN,ph:S.phase,pa:S.paused?1:0,sc:S.score,st:S.serveTeam,sn:S.serveNum,sv:PL.indexOf(S.server),h:S.hits,
+    pe:S.pending?1:0,bn:S.banner,ov:S.over?1:0,sbx:S.sbx,sby:S.sby,sh:r2(Math.max(0,S.shake)),tm:r2(S.timer),df:diff,
+    b:[r2(B.x),r2(B.y),r2(B.z),r2(B.vx),r2(B.vy),r2(B.vz),B.bounces,B.lastTeam,B.live?1:0,B.spin?1:0],
+    p:PL.map(p=>[r2(p.x),r2(p.y),r2(p.vx),r2(p.vy),r2(p.swing),r2(p.sw),r2(p.bob),p.mom>0?1:0,p.ctrl==='human'?1:0]),
+    ack:RINS.map(r=>r?r.qid:0),seq:RINS.map(r=>r?r.seq:0),ev:MP.ev,me:0};
+  for(let s=1;s<4;s++)if(MP.conns[s]){snap.me=s;sendTo(MP.conns[s],snap)}
+}
+
+// ---------- joining ----------
+async function netJoin(){
+  const code=$('nCode').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+  if(code.length!==4){netShow('choose','Enter the 4-letter code from your friend.');return}
+  initAudio();stopMusic();
+  netShow('choose','Connecting to '+code+'…');
+  try{await loadPeer()}catch(e){return netFail('Couldn’t load online play. Check your internet. (It works on the GitHub link, not inside the Claude preview.)')}
+  netClose();MP.role='guest';MP.code=code;
+  let peer;try{peer=new Peer(netOpts())}catch(e){return netFail(netErr({type:'browser-incompatible'}))}
+  MP.peer=peer;
+  peer.on('open',()=>{
+    if(MP.peer!==peer)return;
+    const c=peer.connect('pkdbl-'+code,{reliable:false,serialization:'json'});MP.conn=c;
+    c.on('data',m=>{if(c===MP.conn&&m&&typeof m==='object'){MP.gLastRx=performance.now();guestRx(m)}});
+    c.on('close',()=>guestLost(c));c.on('error',()=>guestLost(c));
+    MP.joinTimer=setTimeout(()=>{if(!MP.ready)netFail('Couldn’t connect. Check the code, and that your friend is still on the room screen.')},15000);
+  });
+  peer.on('error',err=>{if(MP.peer===peer)netFail(netErr(err))});
+}
+function guestLost(c){
+  if(c!==MP.conn)return;
+  const was=MP.ready;netClose();S.phase='menu';S.paused=false;stopMusic();
+  netShow('choose',was?'The connection to the host was lost.':'Couldn’t connect. Try again.');
+}
+// Which spot this phone plays; the court turns around for the far team.
+function guestSeat(s){
+  if(s===ME&&MP.ready)return;
+  ME=s;FLIP=PL[s].team===1;
+  PL.forEach((p,i)=>{p.inp=i===s?IN:null});
+  MP.hist.length=0;MP.cx=MP.cy=0;MP.pendQ=null;MP.lobbyKey='';
+}
+function guestRx(m){
+  if(m.t==='full'){netFail('That room is full (4 players).');return}
+  if(m.t==='bye'){guestLost(MP.conn);return}
+  if(m.t!=='s'||!(m.n>MP.lastSnap))return;
+  MP.lastSnap=m.n;
+  const first=!MP.ready;
+  guestSeat(m.me|0);
+  if(first){MP.ready=true;clearTimeout(MP.joinTimer);$('nCodeShow').textContent=MP.code}
+  m.p.forEach((a,i)=>{const p=PL[i];p.ctrl=a[8]?'human':'ai';p.name=a[8]?SLOT_NAME[i]:AI_NAME[i]});
+  const prev=S.phase,wasPaused=S.paused;
+  S.phase=m.ph;S.paused=!!m.pa;S.score=m.sc;S.serveTeam=m.st;S.serveNum=m.sn;S.server=PL[m.sv]||PL[0];
+  S.hits=m.h;S.pending=m.pe?{}:null;S.banner=m.bn;S.over=!!m.ov;S.sbx=m.sbx;S.sby=m.sby;S.shake=m.sh;S.timer=m.tm;diff=m.df;
+  const b=m.b;
+  MP.base={b:{x:b[0],y:b[1],z:b[2],vx:b[3],vy:b[4],vz:b[5]},p:m.p};MP.baseT=performance.now();
+  B.bounces=b[6];B.lastTeam=b[7];B.live=!!b[8];B.spin=b[9];
+  m.p.forEach((a,i)=>{const p=PL[i];p.swing=a[4];p.sw=a[5];p.mom=a[7];if(i!==ME)p.bob=a[6]});
+  const sp=m.p[ME],seq=m.seq[ME],me=PL[ME];
+  MP.srv={x:sp[0],y:sp[1]};
+  // reconcile own movement: compare the host's position with what this phone predicted for the same input
+  const h=MP.hist.find(o=>o.seq===seq);
+  if(h){
+    const ex=sp[0]-h.x,ey=sp[1]-h.y;
+    if(Math.hypot(ex,ey)>5){me.x=sp[0];me.y=sp[1];MP.cx=MP.cy=0;MP.hist.length=0}
+    else{MP.cx+=ex;MP.cy+=ey;for(const o of MP.hist)if(o.seq>=seq){o.x+=ex;o.y+=ey}}
+  }else if(!MP.hist.length||Math.hypot(me.x-sp[0],me.y-sp[1])>5){me.x=sp[0];me.y=sp[1];MP.cx=MP.cy=0}
+  MP.hist=MP.hist.filter(o=>o.seq>=seq);
+  if(MP.pendQ&&m.ack[ME]>=MP.pendQ.qid)MP.pendQ=null;
+  // events: on the first update skip history, after that play anything new that is for everyone or for this player
+  if(MP.seen<0)MP.seen=m.ev.length?m.ev[m.ev.length-1].i:0;
+  for(const e of m.ev){if(e.i<=MP.seen)continue;MP.seen=e.i;if(e.w===-1||e.w===ME)guestEvent(e)}
+  // screens
+  const live=S.phase==='serve'||S.phase==='rally'||S.phase==='point';
+  if(live){
+    if(!$('mNet').hidden||!$('mOver').hidden||!$('mStart').hidden){['mNet','mOver','mStart'].forEach(i=>$(i).hidden=true);learned=false;keepAwake();if(!S.paused)startMusic()}
+    $('mPause').hidden=!S.paused;
+    if(S.paused&&!wasPaused)stopMusic();else if(!S.paused&&wasPaused)startMusic();
+  }else if(S.phase==='over'){
+    if(prev!=='over'){showOver();$('bAgain').hidden=true;$('bMenu').textContent='Leave';$('oWait').hidden=false;stopMusic()}
+    $('mPause').hidden=true;
+  }else if(S.phase==='menu'){
+    if($('mNet').hidden||!$('nChoose').hidden){$('mOver').hidden=true;$('mPause').hidden=true;stopMusic();netShow('room','Connected! Pick your spot. The host starts the match.')}
+    else renderLobby();
+  }
+}
+function guestEvent(e){
+  if(e.n==='sfx'&&sfx[e.a]){
+    let k=e.a;
+    if(VT()===1&&(k==='win'||k==='lose'))k=k==='win'?'lose':'win';  // the host's win jingle is from team A's side
+    sfx[k]();
+    if(k==='hit'||k==='bang')for(let i=0;i<6;i++)FX.push({x:B.x,y:B.y,vx:rnd(-6,6),vy:rnd(-6,6),z:B.z,vz:rnd(0,4),life:.3,col:k==='bang'?'#ffb23e':'#fff7a8'});
+    if(k==='bounce'||k==='soft')for(let i=0;i<5;i++)FX.push({x:B.x,y:B.y,vx:rnd(-3,3),vy:rnd(-3,3),z:0,vz:rnd(2,5),life:.35,col:'#e6ffd0'});
+  }else if(e.n==='toast'){S.toast=e.a[0];S.toastT=e.a[1]}
+  else if(e.n==='bz')buzz(e.a);
+}
+function guestTick(dt){
+  // timers the host's update() would normally run
+  if(S.toastT>0)S.toastT-=dt;if(S.shake>0)S.shake-=dt;
+  for(let i=FX.length-1;i>=0;i--){const f=FX[i];f.life-=dt;f.x+=f.vx*dt;f.y+=f.vy*dt;f.vz-=G*dt;f.z=Math.max(0,f.z+f.vz*dt);if(f.life<=0)FX.splice(i,1)}
+  const now=performance.now();
+  if(now-MP.gLastRx>1500){if(!MP.waitShown){MP.waitShown=true;S.toast='Waiting for the host…';S.toastT=99}}
+  else if(MP.waitShown){MP.waitShown=false;S.toastT=0}
+  if(now-MP.gLastRx>25000){guestLost(MP.conn);return}
+  // send this phone's input every frame (in court directions); a shot press is repeated until the host confirms it
+  if(IN.q){MP.pendQ={qid:++MP.qid,q:IN.q};IN.q=null;learned=true}
+  let [mx,my]=inputVec(IN);if(FLIP){mx=-mx;my=-my}
+  MP.seq++;
+  netSend({t:'i',seq:MP.seq,mx:r2(mx),my:r2(my),qid:MP.pendQ?MP.pendQ.qid:MP.qid,q:MP.pendQ?MP.pendQ.q:null});
+  const live=(S.phase==='serve'||S.phase==='rally'||S.phase==='point')&&!S.paused;
+  // own player: predicted here, nudged toward the host's copy
+  const me=PL[ME];
+  if(live){
+    humanMove(me,dt);
+    me.x+=me.vx*dt;me.y+=me.vy*dt;me.bob+=dt*Math.hypot(me.vx,me.vy)*.5;
+    const k=Math.min(1,dt*10),dx=MP.cx*k,dy=MP.cy*k;me.x+=dx;me.y+=dy;MP.cx-=dx;MP.cy-=dy;
+    me.y=me.team===0?clamp(me.y,NET+.8,L+3):clamp(me.y,-3,NET-.8);me.x=clamp(me.x,-2,W+2);
+    MP.hist.push({seq:MP.seq,x:me.x+MP.cx,y:me.y+MP.cy});if(MP.hist.length>180)MP.hist.shift();
+  }else if(MP.srv){me.x=MP.srv.x;me.y=MP.srv.y;me.vx=me.vy=0;MP.cx=MP.cy=0;MP.hist.length=0}
+  // everyone else and the ball: last update moved forward by its age
+  if(MP.base){
+    const a=Math.min(.15,(now-MP.baseT)/1000),bb=MP.base.b;
+    MP.base.p.forEach((q,i)=>{if(i===ME)return;const p=PL[i];p.x=q[0]+q[2]*a;p.y=q[1]+q[3]*a;p.vx=q[2];p.vy=q[3]});
+    B.x=bb.x+bb.vx*a;B.y=bb.y+bb.vy*a;B.z=Math.max(0,bb.z+bb.vz*a-.5*G*a*a);B.vx=bb.vx;B.vy=bb.vy;B.vz=bb.vz-G*a;
+    if(S.phase==='rally'&&B.live){B.trail.push({x:B.x,y:B.y,z:B.z});if(B.trail.length>9)B.trail.shift()}else B.trail.length=0;
+  }
+  const T=VT();predCache[0]=predCache[1]=null;
+  if(S.phase==='rally'&&B.live&&B.lastTeam===1-T)predCache[T]=predict(T);
+  spotCache=S.phase==='rally'?smashSpot():null;
+}
+
+// ---------- wiring ----------
+$('bFriend').onclick=()=>{initAudio();stopMusic();netShow('choose')};
+$('bHost').onclick=netHost;
+$('bJoin').onclick=netJoin;
+$('nCode').addEventListener('input',e=>{const v=e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4);if(v!==e.target.value)e.target.value=v});
+$('nCode').addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter')netJoin()});
+$('bNetBack').onclick=()=>{netClose();$('mNet').hidden=true;S.phase='menu';$('mStart').hidden=false};
+$('bNetStart').onclick=()=>{if(MP.role==='host'&&humans())startGame()};
+
 let last=0;
 function frame(t){
   requestAnimationFrame(frame);
   const dt=Math.min(.05,(t-last)/1000||0);last=t;
-  if(!S.paused){let acc=dt;while(acc>0){const h=Math.min(acc,1/90);update(h);acc-=h}}
+  if(MP.role==='guest'&&MP.ready)guestTick(dt);
+  else if(!S.paused){let acc=dt;while(acc>0){const h=Math.min(acc,1/90);update(h);acc-=h}}
+  netHostTick();
   updateButtons();draw();
 }
 resize();CL=cv.getBoundingClientRect().left-app.getBoundingClientRect().left;layoutShots();
